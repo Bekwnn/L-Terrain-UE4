@@ -15,11 +15,15 @@ public:
 
 	FReply OnAddPatchClicked();
 	FReply OnRemovePatchClicked();
+	TSharedRef<ITableRow> GenerateListRow(LPatchPtr item, const TSharedRef<STableViewBase> &ownerTable);
+	void SelectionChanged(LPatchPtr item, ESelectInfo::Type selectType);
 
 protected:
-	TSharedRef<SScrollBox> SpamTestScroll();
 	TSharedRef<SHorizontalBox> SpawnMatchWidget();
 
 public:
 	TSharedPtr<FLTerrainEditorModule> lTerrainModule;
+
+protected:
+	TSharedPtr<SListView<LPatchPtr>> patchListWidget;
 };

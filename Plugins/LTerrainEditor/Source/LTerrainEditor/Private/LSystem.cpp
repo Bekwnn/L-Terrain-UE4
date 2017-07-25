@@ -103,6 +103,11 @@ LPatchPtr LSystem::GetLPatchMatch(LSymbolPtr toMatch)
 	return LPatchPtr();
 }
 
+LSymbolPtr LSystem::GetDefaultSymbol()
+{
+	return (symbols.Num() > 0) ? symbols[0] : nullptr;
+}
+
 //LSystem END
 //LSymbol START
 

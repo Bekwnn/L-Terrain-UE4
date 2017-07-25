@@ -19,6 +19,7 @@ public:
 	LSymbol2DMapPtr IterateLString(LSymbol2DMapPtr source);
 	LRulePtr GetLRuleMatch(LSymbolPtr toMatch);
 	LPatchPtr GetLPatchMatch(LSymbolPtr toMatch);
+	LSymbolPtr GetDefaultSymbol();
 
 public:
 	TArray<LRulePtr> rules;

@@ -17,6 +17,8 @@ public:
 
 	FReply OnAddLoDClicked();
 	FReply OnRemoveLoDClicked();
+	TSharedRef<ITableRow> GenerateListRow(LSymbol2DMapPtr item, const TSharedRef<STableViewBase> &ownerTable);
+	void SelectionChanged(LSymbol2DMapPtr item, ESelectInfo::Type selectType);
 
 protected:
 	TSharedRef<SHorizontalBox> NewBrushBox();
@@ -25,4 +27,7 @@ protected:
 
 public:
 	TSharedPtr<FLTerrainEditorModule> lTerrainModule;
+
+protected:
+	TSharedPtr<SListView<LSymbol2DMapPtr>> lodListWidget;
 };

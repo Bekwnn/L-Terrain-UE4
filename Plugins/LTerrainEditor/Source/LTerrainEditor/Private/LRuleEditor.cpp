@@ -25,11 +25,11 @@ void SLRuleEditor::Construct(const FArguments & InArgs)
 			.Padding(2)
 			.FillHeight(1)
 			[
-				//TODO
 				SAssignNew(ruleListWidget, SListView<LRulePtr>)
 				.ListItemsSource(&(lTerrainModule->lSystem.rules))
 				.OnGenerateRow(this, &SLRuleEditor::GenerateListRow)
 				.OnSelectionChanged(this, &SLRuleEditor::SelectionChanged)
+				.SelectionMode(ESelectionMode::Single)
 			]
 			+ SVerticalBox::Slot()
 			.Padding(2)
@@ -62,7 +62,7 @@ void SLRuleEditor::Construct(const FArguments & InArgs)
 
 FReply SLRuleEditor::OnAddRuleClicked()
 {
-	LSymbolPtr firstSymbol = (lTerrainModule->lSystem.symbols.Num() > 0) ? lTerrainModule->lSystem.symbols[0] : nullptr;
+	LSymbolPtr firstSymbol = lTerrainModule->lSystem.GetDefaultSymbol();
 	LRulePtr newRule = LRule::CreatePropegateRule(firstSymbol, firstSymbol);
 	newRule->name = "New Rule";
 	lTerrainModule->lSystem.rules.Add(newRule);

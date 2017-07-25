@@ -26,15 +26,18 @@ void SLMapEditor::Construct(const FArguments & InArgs)
 			.Padding(2)
 			.FillHeight(1)
 			[
-				//TODO
-				SpamTestScroll()
+				SAssignNew(lodListWidget, SListView<LSymbol2DMapPtr>)
+				.ListItemsSource(&(lTerrainModule->lSystem.lSystemLoDs))
+				.OnGenerateRow(this, &SLMapEditor::GenerateListRow)
+				.OnSelectionChanged(this, &SLMapEditor::SelectionChanged)
+				.SelectionMode(ESelectionMode::Single)
 			]
 			+ SVerticalBox::Slot()
 			.Padding(2)
 			.AutoHeight()
 			[
 				SNew(SButton)
-				.Text(LOCTEXT("GenNewLoDButton", "+ Gen New LoD From Selected"))
+				.Text(LOCTEXT("GenNewLoDButton", "+ Gen New LoD"))
 				.OnClicked(FOnClicked::CreateRaw(this, &SLMapEditor::OnAddLoDClicked))
 			]
 			+ SVerticalBox::Slot()
@@ -58,16 +61,56 @@ void SLMapEditor::Construct(const FArguments & InArgs)
 	];
 }
 
+//generates new LoD from highest current and adds it
 FReply SLMapEditor::OnAddLoDClicked()
 {
-	//TODO
+	if (lTerrainModule->lSystem.lSystemLoDs.Num() > 4) return FReply::Handled();
+	LSymbol2DMapPtr highestLoD = lTerrainModule->lSystem.lSystemLoDs[lTerrainModule->lSystem.lSystemLoDs.Num() - 1];
+	LSymbol2DMapPtr newLoD = lTerrainModule->lSystem.IterateLString(highestLoD);
+	lTerrainModule->lSystem.lSystemLoDs.Add(newLoD);
+
+	lodListWidget->SetSelection(newLoD);
+	lodListWidget->RequestListRefresh();
+
 	return FReply::Handled();
 }
 
 FReply SLMapEditor::OnRemoveLoDClicked()
 {
-	//TODO
+	TArray<LSymbol2DMapPtr> selectedLoD = lodListWidget->GetSelectedItems();
+	int idx;
+	lTerrainModule->lSystem.lSystemLoDs.Find(selectedLoD[0], idx);
+	if (idx == 0) return FReply::Handled(); //Never remove LoD 0
+
+	int count = lTerrainModule->lSystem.lSystemLoDs.Num();
+	for (int i = idx; i < count; ++i)
+	{
+		lTerrainModule->lSystem.lSystemLoDs.Pop(false);
+	}
+	lTerrainModule->lSystem.lSystemLoDs.Shrink();
+
+	lodListWidget->ClearSelection();
+	lodListWidget->RequestListRefresh();
+
 	return FReply::Handled();
+}
+
+TSharedRef<ITableRow> SLMapEditor::GenerateListRow(LSymbol2DMapPtr item, const TSharedRef<STableViewBase>& ownerTable)
+{
+	int idx;
+	lTerrainModule->lSystem.lSystemLoDs.Find(item, idx);
+
+	return SNew(STableRow<LSymbolPtr>, ownerTable)
+		.Padding(2)
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString("LoD " + FString::FromInt(idx)))
+		];
+}
+
+void SLMapEditor::SelectionChanged(LSymbol2DMapPtr item, ESelectInfo::Type selectType)
+{
+	//TODO
 }
 
 TSharedRef<SHorizontalBox> SLMapEditor::NewBrushBox()

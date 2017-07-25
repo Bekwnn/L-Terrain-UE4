@@ -22,6 +22,7 @@ void SLTileEditor::Construct(const FArguments & InArgs)
 				.ListItemsSource(&(lTerrainModule->lSystem.symbols))
 				.OnGenerateRow(this, &SLTileEditor::GenerateListRow)
 				.OnSelectionChanged(this, &SLTileEditor::SelectionChanged)
+				.SelectionMode(ESelectionMode::Single)
 			]
 			+ SVerticalBox::Slot()
 			.Padding(2)
