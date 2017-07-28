@@ -19,9 +19,6 @@ public:
 	TSharedRef<ITableRow> GenerateListRow(LPatchPtr item, const TSharedRef<STableViewBase> &ownerTable);
 	void SelectionChanged(LPatchPtr item, ESelectInfo::Type selectType);
 
-protected:
-	TSharedRef<SHorizontalBox> SpawnMatchWidget();
-
 public:
 	TSharedPtr<FLTerrainEditorModule> lTerrainModule;
 

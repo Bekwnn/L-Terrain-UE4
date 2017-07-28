@@ -8,6 +8,7 @@ class SLTileEditor : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SLTileEditor) {}
+
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& args);

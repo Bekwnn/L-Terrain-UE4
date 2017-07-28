@@ -2,6 +2,7 @@
 #include "LTerrainEditor.h"
 #include "SlateCore.h"
 #include "LSymbolSelector.h"
+#include "LMapView.h"
 
 //Spawns the map editor tab and ui
 
@@ -19,15 +20,11 @@ public:
 	TSharedRef<ITableRow> GenerateListRow(LSymbol2DMapPtr item, const TSharedRef<STableViewBase> &ownerTable);
 	void SelectionChanged(LSymbol2DMapPtr item, ESelectInfo::Type selectType);
 
-protected:
-	TSharedRef<SHorizontalBox> NewBrushBox();
-	TSharedRef<SScrollBox> SpamTestScroll();
-	TSharedRef<SWidget> BrushMenuTest();
-
 public:
 	TSharedPtr<FLTerrainEditorModule> lTerrainModule;
 
 protected:
 	TSharedPtr<SListView<LSymbol2DMapPtr>> lodListWidget;
 	TSharedPtr<SLSymbolSelector> brushWidget;
+	TSharedPtr<SLMapView> mapViewWidget;
 };

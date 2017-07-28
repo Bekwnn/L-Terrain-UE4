@@ -20,10 +20,6 @@ public:
 	TSharedRef<ITableRow> GenerateListRow(LRulePtr item, const TSharedRef<STableViewBase> &ownerTable);
 	void SelectionChanged(LRulePtr item, ESelectInfo::Type selectType);
 
-protected:
-	TSharedRef<SHorizontalBox> NewBrushBox();
-	TSharedRef<SWidget> BrushMenuTest();
-
 public:
 	TSharedPtr<FLTerrainEditorModule> lTerrainModule;
 

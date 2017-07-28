@@ -20,6 +20,13 @@ void SLRuleEditor::Construct(const FArguments & args)
 			.Padding(2)
 			.AutoHeight()
 			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("BrushLabal", "Selected Brush:"))
+			]
+			+ SVerticalBox::Slot()
+			.Padding(2)
+			.AutoHeight()
+			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
 				[
@@ -116,69 +123,6 @@ void SLRuleEditor::SelectionChanged(LRulePtr item, ESelectInfo::Type selectType)
 	ruleViewWidget->Reconstruct(item);
 }
 
-TSharedRef<SHorizontalBox> SLRuleEditor::NewBrushBox()
-{
-	//TODO
-	return
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.Padding(1)
-		.AutoWidth()
-		[
-			SNew(SComboButton)
-			.ButtonContent()
-			[
-				SNew(SBox)
-				.MinDesiredHeight(32)
-				.MinDesiredWidth(32)
-				[
-					SNew(SImage)
-					.ColorAndOpacity(FLinearColor::Blue)
-				]
-			]
-			.MenuContent()
-			[
-				BrushMenuTest()
-			]
-		]
-		+ SHorizontalBox::Slot()
-		.Padding(1)
-		.VAlign(EVerticalAlignment::VAlign_Center)
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("BrushBox2", "TODO: brush name here"))
-		];
-}
-
-TSharedRef<SWidget> SLRuleEditor::BrushMenuTest()
-{
-	//TODO
-	TSharedRef<SVerticalBox> vertBox = SNew(SVerticalBox);
-	for (int i = 0; i < 5; ++i)
-	{
-		TSharedRef<SHorizontalBox> horBox = SNew(SHorizontalBox);
-		for (int j = 0; j < 3; ++j) //Drop-down is 3 brushes selections wide
-		{
-			horBox->AddSlot()
-			[
-				SNew(SBox)
-				.MinDesiredHeight(32)
-				.MinDesiredWidth(32)
-				.Padding(1)
-				[
-					SNew(SImage)
-					.ColorAndOpacity(FLinearColor::Blue)
-				]
-			];
-		}
-		vertBox->AddSlot()
-		[
-			horBox
-		];
-	}
-	return vertBox;
-}
-
 void SLRuleView::Construct(const FArguments & args)
 {
 	Reconstruct(args._Rule);
@@ -187,63 +131,6 @@ void SLRuleView::Construct(const FArguments & args)
 void SLRuleView::Reconstruct(LRulePtr item)
 {
 	if (!item.IsValid()) return;
-
-	TSharedRef<SUniformGridPanel> ruleGridPanel = SNew(SUniformGridPanel)
-		.SlotPadding(2)
-		.MinDesiredSlotWidth(64)
-		.MinDesiredSlotHeight(64);
-
-	for (int i = 0; i < item->replacementVals->Num(); ++i)
-	{
-		for (int j = 0; j < (*(item->replacementVals))[i].Num(); ++j)
-		{
-			LSymbolPtr symbol = (*(item->replacementVals))[i][j];
-			TSharedPtr<SBorder> slotWidget;
-
-			if (symbol->texture.IsValid()) //if texture is set
-			{
-				slotWidget = SNew(SBorder)
-				[
-					SNew(SBox)
-					[
-						SNew(SImage)
-						.ColorAndOpacity(FLinearColor::Blue)
-					]
-					/*//TODO
-					.Image_Lambda([item, i, j]()->FSlateBrush {
-						LSymbolPtr symb = (*(item->replacementVals))[i][j];
-						FSlateBrush brush = FSlateBrush();
-						brush.SetResourceObject(symb->texture.GetAsset());
-						return brush;
-					})
-					*/
-				];
-			}
-			else
-			{
-				slotWidget = SNew(SBorder) // if no texture is set
-				[
-					SNew(SBox)
-					[
-						SNew(SImage)
-						.ColorAndOpacity(FLinearColor::Blue)
-					]
-					/*//TODO
-					SNew(STextBlock)
-					.Text_Lambda([item, i, j]()->FText {
-						LSymbolPtr symb = (*(item->replacementVals))[i][j];
-						return FText::FromString(FString::Chr(symb->symbol));
-					})
-					*/
-				];
-			}
-
-			ruleGridPanel->AddSlot(j, i)
-			[
-				slotWidget.ToSharedRef()
-			];
-		}
-	}
 
 	ChildSlot
 	[
@@ -291,17 +178,8 @@ void SLRuleView::Reconstruct(LRulePtr item)
 				.Padding(2)
 				.AutoWidth()
 				[
-					SNew(SComboButton)
-					.ButtonContent()
-					[
-						SNew(SBox)
-						.MinDesiredHeight(32)
-						.MinDesiredWidth(32)
-						[
-							SNew(SImage)
-							.ColorAndOpacity(FLinearColor::Blue)
-						]
-					]
+					//TODO: on new selection assign to item->matchval
+					SNew(SLSymbolSelector)
 				]
 				+ SHorizontalBox::Slot()
 				.Padding(2)

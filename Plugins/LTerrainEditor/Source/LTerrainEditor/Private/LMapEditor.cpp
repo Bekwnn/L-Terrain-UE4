@@ -20,6 +20,13 @@ void SLMapEditor::Construct(const FArguments & args)
 			.Padding(2)
 			.AutoHeight()
 			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("BrushLabal", "Selected Brush:"))
+			]
+			+ SVerticalBox::Slot()
+			.Padding(2)
+			.AutoHeight()
+			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
 				[
@@ -68,7 +75,7 @@ void SLMapEditor::Construct(const FArguments & args)
 			SNew(SBorder)
 			.Padding(2)
 			[
-				SNew(SLMapView)
+				SAssignNew(mapViewWidget, SLMapView)
 			]
 		]
 	];
@@ -123,85 +130,7 @@ TSharedRef<ITableRow> SLMapEditor::GenerateListRow(LSymbol2DMapPtr item, const T
 
 void SLMapEditor::SelectionChanged(LSymbol2DMapPtr item, ESelectInfo::Type selectType)
 {
-	//TODO
-}
-
-TSharedRef<SHorizontalBox> SLMapEditor::NewBrushBox()
-{
-	return
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.Padding(1)
-		.AutoWidth()
-		[
-			SNew(SComboButton)
-			.ButtonContent()
-			[
-				SNew(SBox)
-				.MinDesiredHeight(32)
-				.MinDesiredWidth(32)
-				[
-					SNew(SImage)
-					.ColorAndOpacity(FLinearColor::Blue)
-				]
-			]
-			.MenuContent()
-			[
-				BrushMenuTest()
-			]
-			
-		]
-		+SHorizontalBox::Slot()
-		.Padding(1)
-		.VAlign(EVerticalAlignment::VAlign_Center)
-		[
-			//TODO
-			SNew(STextBlock)
-			.Text(LOCTEXT("BrushBox", "TODO: brush name here"))
-		];
-}
-
-TSharedRef<SScrollBox> SLMapEditor::SpamTestScroll()
-{
-	TSharedRef<SScrollBox> scrollBox = SNew(SScrollBox);
-	for (int i = 0; i < lTerrainModule->lSystem.lSystemLoDs.Num(); ++i)
-	{
-		FString&& display = "LoD " + FString::FromInt(i);
-		scrollBox->AddSlot()
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString(display))
-		];
-	}
-	return scrollBox;
-}
-
-TSharedRef<SWidget> SLMapEditor::BrushMenuTest()
-{
-	TSharedRef<SVerticalBox> vertBox = SNew(SVerticalBox);
-	for (int i = 0; i < 5; ++i)
-	{
-		TSharedRef<SHorizontalBox> horBox = SNew(SHorizontalBox);
-		for (int j = 0; j < 3; ++j)
-		{
-			horBox->AddSlot()
-			[
-				SNew(SBox)
-				.MinDesiredHeight(32)
-				.MinDesiredWidth(32)
-				.Padding(1)
-				[
-					SNew(SImage)
-					.ColorAndOpacity(FLinearColor::Blue)
-				]
-			];
-		}
-		vertBox->AddSlot()
-		[
-			horBox
-		];
-	}
-	return vertBox;
+	mapViewWidget->Reconstruct(item);
 }
 
 #undef LOCTEXT_NAMESPACE
