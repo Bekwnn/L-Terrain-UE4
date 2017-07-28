@@ -1,9 +1,11 @@
 #pragma once
 #include "LTerrainEditor.h"
 #include "SlateCore.h"
+#include "LSymbolSelector.h"
+
+class SLRuleView;
 
 //Spawns the rule editor tab and ui
-
 class SLRuleEditor : public SCompoundWidget
 {
 public:
@@ -11,7 +13,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& args);
 
 	FReply OnAddRuleClicked();
 	FReply OnRemoveRuleClicked();
@@ -27,4 +29,17 @@ public:
 
 protected:
 	TSharedPtr<SListView<LRulePtr>> ruleListWidget;
+	TSharedPtr<SLRuleView> ruleViewWidget;
+	TSharedPtr<SLSymbolSelector> brushWidget;
+};
+
+class SLRuleView : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SLRuleView) {}
+	SLATE_ARGUMENT(LRulePtr, Rule)
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& args);
+	void Reconstruct(LRulePtr item);
 };

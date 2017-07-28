@@ -5,6 +5,11 @@
 #include "ModuleManager.h"
 #include "SlateBasics.h"
 #include "SlateExtras.h"
+#include "PropertyCustomizationHelpers.h"
+#include "PropertyEditorModule.h"
+
+#include "Engine/Texture2D.h"
+#include "AssetData.h"
 
 #include "LSystem.h"
 

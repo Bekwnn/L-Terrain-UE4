@@ -3,7 +3,7 @@
 
 #define LOCTEXT_NAMESPACE "FLTerrainEditorModule"
 
-void SLGenOptions::Construct(const FArguments & InArgs)
+void SLGenOptions::Construct(const FArguments & args)
 {
 	lTerrainModule = FLTerrainEditorModule::GetModule();
 

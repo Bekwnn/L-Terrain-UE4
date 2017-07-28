@@ -1,9 +1,10 @@
 #include "LTerrainEditor.h"
 #include "LRuleEditor.h"
+#include "LMapView.h"
 
 #define LOCTEXT_NAMESPACE "FLTerrainEditorModule"
 
-void SLRuleEditor::Construct(const FArguments & InArgs)
+void SLRuleEditor::Construct(const FArguments & args)
 {
 	lTerrainModule = FLTerrainEditorModule::GetModule();
 
@@ -19,7 +20,20 @@ void SLRuleEditor::Construct(const FArguments & InArgs)
 			.Padding(2)
 			.AutoHeight()
 			[
-				NewBrushBox()
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				[
+					SAssignNew(brushWidget, SLSymbolSelector)
+				]
+				+SHorizontalBox::Slot()
+				.Padding(1)
+				.VAlign(EVerticalAlignment::VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text_Lambda([this]()->FText {
+						return FText::FromString((brushWidget->selectedSymbol.IsValid()) ? brushWidget->selectedSymbol->name : "");
+					})
+				]
 			]
 			+ SVerticalBox::Slot()
 			.Padding(2)
@@ -52,9 +66,9 @@ void SLRuleEditor::Construct(const FArguments & InArgs)
 		.Padding(2)
 		[
 			SNew(SBorder)
-			.Padding(2)
 			[
-				SNew(SBox)
+				SAssignNew(ruleViewWidget, SLRuleView)
+				.Rule(nullptr)
 			]
 		]
 	];
@@ -99,7 +113,7 @@ TSharedRef<ITableRow> SLRuleEditor::GenerateListRow(LRulePtr item, const TShared
 
 void SLRuleEditor::SelectionChanged(LRulePtr item, ESelectInfo::Type selectType)
 {
-	//TODO
+	ruleViewWidget->Reconstruct(item);
 }
 
 TSharedRef<SHorizontalBox> SLRuleEditor::NewBrushBox()
@@ -163,6 +177,147 @@ TSharedRef<SWidget> SLRuleEditor::BrushMenuTest()
 		];
 	}
 	return vertBox;
+}
+
+void SLRuleView::Construct(const FArguments & args)
+{
+	Reconstruct(args._Rule);
+}
+
+void SLRuleView::Reconstruct(LRulePtr item)
+{
+	if (!item.IsValid()) return;
+
+	TSharedRef<SUniformGridPanel> ruleGridPanel = SNew(SUniformGridPanel)
+		.SlotPadding(2)
+		.MinDesiredSlotWidth(64)
+		.MinDesiredSlotHeight(64);
+
+	for (int i = 0; i < item->replacementVals->Num(); ++i)
+	{
+		for (int j = 0; j < (*(item->replacementVals))[i].Num(); ++j)
+		{
+			LSymbolPtr symbol = (*(item->replacementVals))[i][j];
+			TSharedPtr<SBorder> slotWidget;
+
+			if (symbol->texture.IsValid()) //if texture is set
+			{
+				slotWidget = SNew(SBorder)
+				[
+					SNew(SBox)
+					[
+						SNew(SImage)
+						.ColorAndOpacity(FLinearColor::Blue)
+					]
+					/*//TODO
+					.Image_Lambda([item, i, j]()->FSlateBrush {
+						LSymbolPtr symb = (*(item->replacementVals))[i][j];
+						FSlateBrush brush = FSlateBrush();
+						brush.SetResourceObject(symb->texture.GetAsset());
+						return brush;
+					})
+					*/
+				];
+			}
+			else
+			{
+				slotWidget = SNew(SBorder) // if no texture is set
+				[
+					SNew(SBox)
+					[
+						SNew(SImage)
+						.ColorAndOpacity(FLinearColor::Blue)
+					]
+					/*//TODO
+					SNew(STextBlock)
+					.Text_Lambda([item, i, j]()->FText {
+						LSymbolPtr symb = (*(item->replacementVals))[i][j];
+						return FText::FromString(FString::Chr(symb->symbol));
+					})
+					*/
+				];
+			}
+
+			ruleGridPanel->AddSlot(j, i)
+			[
+				slotWidget.ToSharedRef()
+			];
+		}
+	}
+
+	ChildSlot
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(2)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString("Tile Name"))
+			]
+			+ SHorizontalBox::Slot()
+			[
+				SNew(SEditableTextBox)
+				.MinDesiredWidth(200)
+				.Text_Lambda([item]()->FText {
+					return FText::FromString(item->name);
+				})
+				.OnTextChanged_Lambda([item](FText newText) {
+					item->name = newText.ToString();
+				})
+			]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(2)
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("MatchText1", "Matches symbol "))
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(2)
+				.AutoWidth()
+				[
+					SNew(SComboButton)
+					.ButtonContent()
+					[
+						SNew(SBox)
+						.MinDesiredHeight(32)
+						.MinDesiredWidth(32)
+						[
+							SNew(SImage)
+							.ColorAndOpacity(FLinearColor::Blue)
+						]
+					]
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(2)
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("MatchText2", " and replaces with:"))
+				]
+			]
+			+ SVerticalBox::Slot()
+			[
+				SNew(SLMapView)
+				.Map(item->replacementVals)
+			]
+		]
+	];
 }
 
 #undef LOCTEXT_NAMESPACE

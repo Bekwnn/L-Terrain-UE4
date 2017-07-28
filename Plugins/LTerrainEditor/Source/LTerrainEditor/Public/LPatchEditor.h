@@ -2,8 +2,9 @@
 #include "LTerrainEditor.h"
 #include "SlateCore.h"
 
-//Spawns the rule editor tab and ui
+class SLPatchView;
 
+//Spawns the rule editor tab and ui
 class SLPatchEditor : public SCompoundWidget
 {
 public:
@@ -11,7 +12,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& args);
 
 	FReply OnAddPatchClicked();
 	FReply OnRemovePatchClicked();
@@ -26,4 +27,16 @@ public:
 
 protected:
 	TSharedPtr<SListView<LPatchPtr>> patchListWidget;
+	TSharedPtr<SLPatchView> patchViewWidget;
+};
+
+class SLPatchView : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SLPatchView) {}
+	SLATE_ARGUMENT(LPatchPtr, Patch)
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& args);
+	void Reconstruct(LPatchPtr item);
 };

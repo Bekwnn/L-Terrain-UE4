@@ -3,7 +3,7 @@
 
 #define LOCTEXT_NAMESPACE "FLTerrainEditorModule"
 
-void SLPatchEditor::Construct(const FArguments & InArgs)
+void SLPatchEditor::Construct(const FArguments & args)
 {
 	lTerrainModule = FLTerrainEditorModule::GetModule();
 
@@ -52,7 +52,8 @@ void SLPatchEditor::Construct(const FArguments & InArgs)
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					SpawnMatchWidget()
+					SAssignNew(patchViewWidget, SLPatchView)
+					.Patch(nullptr)
 				]
 			]
 		]
@@ -100,43 +101,83 @@ TSharedRef<ITableRow> SLPatchEditor::GenerateListRow(LPatchPtr item, const TShar
 
 void SLPatchEditor::SelectionChanged(LPatchPtr item, ESelectInfo::Type selectType)
 {
-	//TODO
+	patchViewWidget->Reconstruct(item);
 }
 
-TSharedRef<SHorizontalBox> SLPatchEditor::SpawnMatchWidget()
+void SLPatchView::Construct(const FArguments & args)
 {
-	return
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
+	Reconstruct(args._Patch);
+}
+
+void SLPatchView::Reconstruct(LPatchPtr item)
+{
+	if (!item.IsValid()) return;
+	
+	ChildSlot
+	[
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
 		.Padding(2)
-		.AutoWidth()
 		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("MatchText1", "Matches symbol "))
-		]
-		+ SHorizontalBox::Slot()
-		.Padding(2)
-		.AutoWidth()
-		[
-			SNew(SComboButton)
-			.ButtonContent()
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
 			[
-				SNew(SBox)
-				.MinDesiredHeight(32)
-				.MinDesiredWidth(32)
-				[
-					SNew(SImage)
-					.ColorAndOpacity(FLinearColor::Blue)
-				]
+				SNew(STextBlock)
+				.Text(FText::FromString("Patch Name"))
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
+			[
+				SNew(SEditableTextBox)
+				.MinDesiredWidth(200)
+				.Text_Lambda([item]()->FText {
+					return FText::FromString(item->name);
+				})
+				.OnTextChanged_Lambda([item](FText newText) {
+					item->name = newText.ToString();
+				})
 			]
 		]
-		+SHorizontalBox::Slot()
-		.Padding(2)
-		.AutoWidth()
+		+ SVerticalBox::Slot()
+		.AutoHeight()
 		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("MatchText2", " and replaces with patch contents:"))
-		];
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("MatchText1", "Matches symbol "))
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
+			[
+				SNew(SComboButton)
+				.ButtonContent()
+				[
+					SNew(SBox)
+					.MinDesiredHeight(32)
+					.MinDesiredWidth(32)
+					[
+						SNew(SImage)
+						.ColorAndOpacity(FLinearColor::Blue)
+					]
+				]
+			]
+			+SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("MatchText2", " and replaces with patch contents:"))
+			]
+		]
+	];
 }
 
 #undef LOCTEXT_NAMESPACE

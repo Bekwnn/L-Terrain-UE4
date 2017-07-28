@@ -2,14 +2,15 @@
 #include "LTerrainEditor.h"
 #include "SlateCore.h"
 
+class SLTileView;
+
 class SLTileEditor : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SLTileEditor) {}
-
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& args);
 
 	FReply OnAddTileClicked();
 	FReply OnRemoveTileClicked();
@@ -21,4 +22,16 @@ public:
 
 protected:
 	TSharedPtr<SListView<LSymbolPtr>> symbolListWidget;
+	TSharedPtr<SLTileView> tileViewWidget;
+};
+
+class SLTileView : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SLTileView) {}
+	SLATE_ARGUMENT(LSymbolPtr, Symbol)
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& args);
+	void Reconstruct(LSymbolPtr item);
 };

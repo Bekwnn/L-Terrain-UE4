@@ -11,7 +11,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& args);
 
 public:
 	TSharedPtr<FLTerrainEditorModule> lTerrainModule;

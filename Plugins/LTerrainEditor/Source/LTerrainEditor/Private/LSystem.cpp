@@ -15,17 +15,17 @@ void LSystem::Reset()
 
 void LSystem::GenerateSomeDefaults()
 {
-	LSymbolPtr plains = LSymbolPtr(new LSymbol('p', "plains"));
-	LSymbolPtr hills = LSymbolPtr(new LSymbol('h', "hills"));
-	LSymbolPtr ocean = LSymbolPtr(new LSymbol('o', "ocean"));
+	LSymbolPtr plains = LSymbolPtr(new LSymbol('p', "Plains"));
+	LSymbolPtr hills = LSymbolPtr(new LSymbol('h', "Hills"));
+	LSymbolPtr ocean = LSymbolPtr(new LSymbol('o', "Ocean"));
 
 	symbols.Add(plains);
 	symbols.Add(hills);
 	symbols.Add(ocean);
 
-	LSymbolPtr grass = LSymbolPtr(new LSymbol('g', "grass"));
-	LSymbolPtr sand = LSymbolPtr(new LSymbol('s', "sand"));
-	LSymbolPtr beach = LSymbolPtr(new LSymbol('b', "beach"));
+	LSymbolPtr grass = LSymbolPtr(new LSymbol('g', "Grass"));
+	LSymbolPtr sand = LSymbolPtr(new LSymbol('s', "Sand"));
+	LSymbolPtr beach = LSymbolPtr(new LSymbol('b', "Beach"));
 
 	symbols.Add(grass);
 	symbols.Add(beach);
@@ -38,7 +38,7 @@ void LSystem::GenerateSomeDefaults()
 	(*lSystemLoDs[0])[2] = { ocean, beach, hills };
 
 	LRulePtr plainsToGrass = LRule::CreatePropegateRule(plains, grass);
-	plainsToGrass->name = "Pprgate Plains > Grass";
+	plainsToGrass->name = "Plains > Grass";
 	rules.Add(plainsToGrass);
 
 	LSymbol2DMapPtr beachRepl = LSymbol::CreateLSymbolMap(5, 5);
@@ -51,6 +51,30 @@ void LSystem::GenerateSomeDefaults()
 	LRulePtr detailBeach = LRule::CreateRule(beach, beachRepl);
 	detailBeach->name = "Detail Beach";
 	rules.Add(detailBeach);
+
+	LPatchPtr oceanPatch = LPatchPtr(new LPatch());
+	oceanPatch->matchVal = ocean;
+	oceanPatch->name = "Ocean Patch";
+	oceanPatch->minHeight = -40.f;
+	oceanPatch->maxHeight = -1.f;
+
+	patches.Add(oceanPatch);
+
+	LPatchPtr beachPatch = LPatchPtr(new LPatch());
+	beachPatch->matchVal = beach;
+	beachPatch->name = "Beach Patch";
+	beachPatch->minHeight = 0.f;
+	beachPatch->maxHeight = 2.f;
+
+	patches.Add(beachPatch);
+
+	LPatchPtr grassPatch = LPatchPtr(new LPatch());
+	grassPatch->matchVal = ocean;
+	grassPatch->name = "Grass Patch";
+	grassPatch->minHeight = 2.f;
+	grassPatch->maxHeight = 10.f;
+
+	patches.Add(grassPatch);
 }
 
 LSymbol2DMapPtr LSystem::IterateLString(LSymbol2DMapPtr source)

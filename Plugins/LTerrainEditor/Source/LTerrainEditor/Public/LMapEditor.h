@@ -1,8 +1,7 @@
 #pragma once
 #include "LTerrainEditor.h"
 #include "SlateCore.h"
-#include "Framework/Layout/ScrollyZoomy.h"
-#include "Framework/Docking/TabManager.h"
+#include "LSymbolSelector.h"
 
 //Spawns the map editor tab and ui
 
@@ -13,7 +12,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& args);
 
 	FReply OnAddLoDClicked();
 	FReply OnRemoveLoDClicked();
@@ -30,4 +29,5 @@ public:
 
 protected:
 	TSharedPtr<SListView<LSymbol2DMapPtr>> lodListWidget;
+	TSharedPtr<SLSymbolSelector> brushWidget;
 };

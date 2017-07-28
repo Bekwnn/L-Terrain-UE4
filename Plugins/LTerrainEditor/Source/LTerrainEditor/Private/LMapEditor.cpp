@@ -4,7 +4,7 @@
 
 #define LOCTEXT_NAMESPACE "FLTerrainEditorModule"
 
-void SLMapEditor::Construct(const FArguments & InArgs)
+void SLMapEditor::Construct(const FArguments & args)
 {
 	lTerrainModule = FLTerrainEditorModule::GetModule();
 
@@ -20,7 +20,20 @@ void SLMapEditor::Construct(const FArguments & InArgs)
 			.Padding(2)
 			.AutoHeight()
 			[
-				NewBrushBox()
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				[
+					SAssignNew(brushWidget, SLSymbolSelector)
+				]
+				+SHorizontalBox::Slot()
+				.Padding(1)
+				.VAlign(EVerticalAlignment::VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text_Lambda([this]()->FText {
+						return FText::FromString((brushWidget->selectedSymbol.IsValid()) ? brushWidget->selectedSymbol->name : "");
+					})
+				]
 			]
 			+ SVerticalBox::Slot()
 			.Padding(2)

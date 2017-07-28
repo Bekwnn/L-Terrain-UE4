@@ -4,6 +4,8 @@
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LMapView.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LPatchEditor.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LRuleEditor.cpp"
+#include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LSymbolBox.cpp"
+#include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LSymbolSelector.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LSystem.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LTerrainEditor.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LTerrainEditorStyle.cpp"

@@ -38,7 +38,7 @@ public:
 
 	char symbol;
 	FString name;
-	//UTexture2D texture;
+	FAssetData texture;
 };
 
 class LRule
