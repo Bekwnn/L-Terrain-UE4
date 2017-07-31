@@ -129,7 +129,7 @@ LPatchPtr LSystem::GetLPatchMatch(LSymbolPtr toMatch)
 
 LSymbolPtr LSystem::GetDefaultSymbol()
 {
-	return (symbols.Num() > 0) ? symbols[0] : nullptr;
+	return (symbols.Num() > 0) ? symbols[0] : LSymbolPtr();
 }
 
 //LSystem END

@@ -36,7 +36,7 @@ void SLSymbolSelector::Reconstruct()
 					SNew(SButton)
 					.OnClicked_Lambda([this, brushi]() {
 						this->selectedSymbol = this->lTerrainModule->lSystem.symbols[brushi];
-						this->Reconstruct();
+						FSlateApplication::Get().DismissAllMenus();
 						return FReply::Handled();
 					})
 					[
@@ -66,6 +66,9 @@ void SLSymbolSelector::Reconstruct()
 		[
 			vertBox
 		]
+		.OnMenuOpenChanged_Lambda([this](bool bIsOpen) {
+			if (!bIsOpen) this->Reconstruct();
+		})
 	];
 }
 

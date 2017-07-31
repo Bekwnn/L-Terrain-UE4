@@ -75,7 +75,8 @@ void SLMapEditor::Construct(const FArguments & args)
 			SNew(SBorder)
 			.Padding(2)
 			[
-				SAssignNew(mapViewWidget, SLMapView)
+				//SAssignNew(mapViewWidget, SLMapView)
+				SNew(SBox)
 			]
 		]
 	];
@@ -130,7 +131,7 @@ TSharedRef<ITableRow> SLMapEditor::GenerateListRow(LSymbol2DMapPtr item, const T
 
 void SLMapEditor::SelectionChanged(LSymbol2DMapPtr item, ESelectInfo::Type selectType)
 {
-	mapViewWidget->Reconstruct(item);
+	//mapViewWidget->Reconstruct(item);
 }
 
 #undef LOCTEXT_NAMESPACE
