@@ -1,5 +1,6 @@
 #pragma once
 #include "LTerrainEditor.h"
+#include "Framework/Layout/ScrollyZoomy.h"
 //Spawns the map editor tab and ui
 
 class SLMapView : public SCompoundWidget

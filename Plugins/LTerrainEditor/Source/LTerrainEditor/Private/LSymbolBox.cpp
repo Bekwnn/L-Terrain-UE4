@@ -1,29 +1,31 @@
 #include "LTerrainEditor.h"
 #include "LSymbolBox.h"
 
+#define SYMBOL_BOX_SIZE 32
+
 void SLSymbolBox::Construct(const FArguments & args)
 {
-	if (!args._Symbol.IsValid()) //spawn dummy box
+	if (!args._Symbol.Get().IsValid()) //spawn dummy box
 	{
 		ChildSlot
 		[
 			SNew(SBox)
-			.MinDesiredHeight(32)
-			.MinDesiredWidth(32)
+			.MinDesiredHeight(SYMBOL_BOX_SIZE)
+			.MinDesiredWidth(SYMBOL_BOX_SIZE)
 		];
 	}
-	else if (args._Symbol->texture.IsValid()) //spawn image box
+	else if (args._Symbol.Get()->texture.IsValid()) //spawn image box
 	{
 		ChildSlot
 		[
 			SNew(SBox)
-			.MinDesiredHeight(32)
-			.MinDesiredWidth(32)
+			.MinDesiredHeight(SYMBOL_BOX_SIZE)
+			.MinDesiredWidth(SYMBOL_BOX_SIZE)
 			[
 				SNew(SImage)
 				.Image_Lambda([args]()->const FSlateBrush* {
 					FSlateBrush* newbrush = new FSlateBrush();
-					newbrush->SetResourceObject(args._Symbol->texture.GetAsset());
+					newbrush->SetResourceObject(args._Symbol.Get()->texture.GetAsset());
 					return newbrush;
 				})
 			]
@@ -34,8 +36,8 @@ void SLSymbolBox::Construct(const FArguments & args)
 		ChildSlot
 		[
 			SNew(SBox)
-			.MinDesiredHeight(32)
-			.MinDesiredWidth(32)
+			.MinDesiredHeight(SYMBOL_BOX_SIZE)
+			.MinDesiredWidth(SYMBOL_BOX_SIZE)
 			[
 				SNew(SBox)
 				.VAlign(EVerticalAlignment::VAlign_Center)
@@ -43,10 +45,12 @@ void SLSymbolBox::Construct(const FArguments & args)
 					SNew(STextBlock)
 					.Justification(ETextJustify::Center)
 					.Text_Lambda([args]()->FText {
-						return FText::FromString(FString::Chr(args._Symbol->symbol));
+						return FText::FromString(FString::Chr(args._Symbol.Get()->symbol));
 					})
 				]
 			]
 		];
 	}
 }
+
+#undef SYMBOL_BOX_SIZE

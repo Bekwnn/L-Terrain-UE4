@@ -191,6 +191,22 @@ void SLRuleView::Reconstruct(LRulePtr item)
 			]
 			+ SVerticalBox::Slot()
 			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Require Matched Neighbors"))
+				]
+				+ SHorizontalBox::Slot()
+				[
+					SNew(SCheckBox)
+					.IsChecked_Lambda([item]()->ECheckBoxState {
+						return (item->bMatchNeighbors)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+					})
+				]
+			]
+			+ SVerticalBox::Slot()
+			[
 				SNew(SLMapView)
 				.Map(item->replacementVals)
 			]

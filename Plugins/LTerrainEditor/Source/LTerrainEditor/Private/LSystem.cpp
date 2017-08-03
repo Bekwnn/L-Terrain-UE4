@@ -159,6 +159,8 @@ LSymbol2DMapPtr LSymbol::CreateLSymbolMap(int inner, int outer)
 //LSymbol END
 //LRule START
 
+LSymbol LRule::_matchAny = LSymbol('?', "Match Any");
+
 LRulePtr LRule::CreateRule(LSymbolPtr matchVal, LSymbol2DMapPtr replacementVals)
 {
 	if (replacementVals->Num() != LSystem::DIMS || (*replacementVals)[0].Num() != replacementVals->Num())

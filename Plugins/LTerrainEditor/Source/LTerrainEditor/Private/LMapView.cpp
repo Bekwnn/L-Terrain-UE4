@@ -14,9 +14,7 @@ void SLMapView::Reconstruct(LSymbol2DMapPtr item)
 	if (!item.IsValid()) return;
 
 	TSharedRef<SUniformGridPanel> ruleGridPanel = SNew(SUniformGridPanel)
-		.SlotPadding(2)
-		.MinDesiredSlotWidth(64)
-		.MinDesiredSlotHeight(64);
+		.SlotPadding(2);
 
 	for (int i = 0; i < item->Num(); ++i)
 	{
@@ -25,14 +23,15 @@ void SLMapView::Reconstruct(LSymbol2DMapPtr item)
 			ruleGridPanel->AddSlot(j, i)
 			[
 				SNew(SLSymbolBox)
-				.Symbol((*item)[i][j])
+				.Symbol_Lambda([item, i, j]() {
+					return (*item)[i][j];
+				})
 			];
 		}
 	}
 
 	ChildSlot
 	[
-		
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.AutoWidth()

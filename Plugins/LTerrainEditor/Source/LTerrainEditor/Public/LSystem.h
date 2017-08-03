@@ -47,17 +47,29 @@ public:
 	static LRulePtr CreateRule(LSymbolPtr matchVal, LSymbol2DMapPtr replacementVals);
 	static LRulePtr CreatePropegateRule(LSymbolPtr matchVal, LSymbolPtr propegateVal);
 
+	//special static instance of LRule to designate "any" LRule for matches
+	static LSymbolPtr MatchAny() { return LSymbolPtr(&_matchAny); }
+
 protected:
 	LRule(LSymbolPtr matchVal, LSymbol2DMapPtr replacementVals)
 	{
 		this->matchVal = matchVal;
 		this->replacementVals = replacementVals;
+
+		bMatchNeighbors = false;
+		matchNeighborsMap = TArray<LSymbolPtr>();
+		matchNeighborsMap.Init(LRule::MatchAny(), 8);
 	}
 
 public:
 	FString name;
 	LSymbolPtr matchVal;
 	LSymbol2DMapPtr replacementVals;
+	bool bMatchNeighbors;
+	TArray<LSymbolPtr> matchNeighborsMap;
+
+protected:
+	static LSymbol _matchAny;
 };
 
 class LPatch
