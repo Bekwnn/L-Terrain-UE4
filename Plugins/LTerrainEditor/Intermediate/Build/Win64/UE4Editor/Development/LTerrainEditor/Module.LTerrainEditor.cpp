@@ -9,6 +9,7 @@
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LSystem.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LTerrainEditor.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LTerrainEditorStyle.cpp"
+#include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LTerrainGeneration.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LTileBrushSelector.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LTileEditor.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Public\LTerrainEditorCommands.cpp"

@@ -69,7 +69,7 @@ void LSystem::GenerateSomeDefaults()
 	patches.Add(beachPatch);
 
 	LPatchPtr grassPatch = LPatchPtr(new LPatch());
-	grassPatch->matchVal = ocean;
+	grassPatch->matchVal = grass;
 	grassPatch->name = "Grass Patch";
 	grassPatch->minHeight = 2.f;
 	grassPatch->maxHeight = 10.f;
@@ -87,7 +87,7 @@ LSymbol2DMapPtr LSystem::IterateLString(LSymbol2DMapPtr source)
 	{
 		for (int j = 0; j < jdim; ++j)
 		{
-			LRulePtr matchingRule = GetLRuleMatch((*source)[i][j]);
+			LRulePtr matchingRule = GetLRuleMatch(source, i, j);
 
 			for (int i2 = 0; i2 < DIMS; ++i2)
 			{
@@ -96,23 +96,64 @@ LSymbol2DMapPtr LSystem::IterateLString(LSymbol2DMapPtr source)
 					(*newSystemString)[i*DIMS + i2][j*DIMS + j2] = (*(matchingRule->replacementVals))[i2][j2];
 				}
 			}
-
 		}
 	}
 
 	return newSystemString;
 }
 
-LRulePtr LSystem::GetLRuleMatch(LSymbolPtr toMatch)
+LRulePtr LSystem::GetLRuleMatch(LSymbol2DMapPtr map, int xIdx, int yIdx)
 {
+	TArray<LRulePtr> matches = TArray<LRulePtr>();
+
+	LSymbolPtr toMatch = (*map)[yIdx][xIdx]; //middle element
+
 	for (LRulePtr rule : rules)
 	{
 		if (toMatch == rule->matchVal)
-			return rule;
+		{
+			//add rule to matches if it 
+			if (!rule->bMatchNeighbors) matches.Add(rule);
+			else
+			{
+				bool bFailMatch = false;
+				for (int i = 0; i < 3; ++i)
+				{
+					for (int j = 0; j < 3; ++j)
+					{
+						if (xIdx + j - 1 < 0 || xIdx + j - 1 > (*map).Num() ||
+							yIdx + i - 1 < 0 || yIdx + i - 1 > (*map)[0].Num())
+						{
+							continue;
+						}
+
+						if ((*rule->matchNeighborsMap)[i][j] != LSymbol::MatchAny() &&
+							(*map)[yIdx + i - 1][xIdx + j - 1] != (*rule->matchNeighborsMap)[i][j])
+						{
+							bFailMatch = true;
+						}
+					}
+				}
+
+				if (!bFailMatch) matches.Add(rule);
+			}
+		}
 	}
 
 	//if no match found, create a rule to propegate toMatch (default behavior)
-	return LRule::CreatePropegateRule(toMatch, toMatch);
+	if (matches.Num() == 0)
+		return LRule::CreatePropegateRule(toMatch, toMatch);
+	else
+	{
+		//TODO: better metric for figuring out best match from matches array
+		//return first neighbor matching rule which matched
+		//failing that, return the first non-neighbor matching rule
+		for (LRulePtr rule : matches)
+		{
+			if (rule->bMatchNeighbors) return rule;
+		}
+		return matches[0];
+	}
 }
 
 LPatchPtr LSystem::GetLPatchMatch(LSymbolPtr toMatch)
@@ -123,8 +164,20 @@ LPatchPtr LSystem::GetLPatchMatch(LSymbolPtr toMatch)
 			return patch;
 	}
 
-	//if no match found, return null
-	return LPatchPtr();
+	return LPatchPtr(new LPatch());
+}
+
+LSymbolPtr LSystem::GetMapSymbolFrom01Coords(LSymbol2DMapPtr map, float xPercCoord, float yPercCoord)
+{
+	xPercCoord = FMath::Clamp(xPercCoord, 0.f, 0.99999f);
+	yPercCoord = FMath::Clamp(yPercCoord, 0.f, 0.99999f);
+
+	int ydim = (*map).Num();
+	int xdim = (*map)[0].Num();
+
+	int xIdx = FMath::FloorToInt(xPercCoord * xdim);
+	int yIdx = FMath::FloorToInt(yPercCoord * ydim);
+	return (*map)[xIdx][yIdx];
 }
 
 LSymbolPtr LSystem::GetDefaultSymbol()
@@ -134,6 +187,8 @@ LSymbolPtr LSystem::GetDefaultSymbol()
 
 //LSystem END
 //LSymbol START
+
+LSymbolPtr LSymbol::_matchAny = LSymbolPtr(new LSymbol('?', "Match Any"));
 
 LSymbol::LSymbol(char symbol, FString name)
 {
@@ -158,8 +213,6 @@ LSymbol2DMapPtr LSymbol::CreateLSymbolMap(int inner, int outer)
 
 //LSymbol END
 //LRule START
-
-LSymbol LRule::_matchAny = LSymbol('?', "Match Any");
 
 LRulePtr LRule::CreateRule(LSymbolPtr matchVal, LSymbol2DMapPtr replacementVals)
 {

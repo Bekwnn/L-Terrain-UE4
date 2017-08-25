@@ -10,7 +10,6 @@ class SLMapEditor : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SLMapEditor) {}
-
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& args);

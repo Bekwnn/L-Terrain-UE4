@@ -64,6 +64,7 @@
 "C:\Program Files\Epic Games\UE_4.15\Engine\Intermediate\Build\Win64\UE4Editor\Development\UE4Editor-SlateCore.lib"
 "C:\Program Files\Epic Games\UE_4.15\Engine\Intermediate\Build\Win64\UE4Editor\Development\UE4Editor-PropertyEditor.lib"
 "C:\Program Files\Epic Games\UE_4.15\Engine\Intermediate\Build\Win64\UE4Editor\Development\UE4Editor-Core.lib"
+"C:\Program Files\Epic Games\UE_4.15\Engine\Intermediate\Build\Win64\UE4Editor\Development\UE4Editor-Landscape.lib"
 /OUT:"C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Binaries\Win64\UE4Editor-LTerrainEditor.dll"
 /IMPLIB:"C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Intermediate\Build\Win64\UE4Editor\Development\UE4Editor-LTerrainEditor.suppressed.lib"
 /PDB:"C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Binaries\Win64\UE4Editor-LTerrainEditor.pdb"

@@ -7,6 +7,8 @@
 void SLSymbolSelector::Construct(const FArguments & args)
 {
 	lTerrainModule = FLTerrainEditorModule::GetModule();
+	selectedSymbol = args._StartSymbol.Get();
+	_OnSelectionClose = args._OnSelectionClose;
 
 	Reconstruct();
 }
@@ -37,6 +39,7 @@ void SLSymbolSelector::Reconstruct()
 					.OnClicked_Lambda([this, brushi]() {
 						this->selectedSymbol = this->lTerrainModule->lSystem.symbols[brushi];
 						FSlateApplication::Get().DismissAllMenus();
+						_OnSelectionClose.ExecuteIfBound(this->selectedSymbol);
 						return FReply::Handled();
 					})
 					[
@@ -60,7 +63,9 @@ void SLSymbolSelector::Reconstruct()
 		.ButtonContent()
 		[
 			SNew(SLSymbolBox)
-			.Symbol(selectedSymbol)
+			.Symbol_Lambda([this]()->LSymbolPtr {
+				return this->selectedSymbol;
+			})
 		]
 		.MenuContent()
 		[

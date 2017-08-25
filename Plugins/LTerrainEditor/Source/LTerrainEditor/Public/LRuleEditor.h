@@ -34,8 +34,12 @@ class SLRuleView : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS(SLRuleView) {}
 	SLATE_ARGUMENT(LRulePtr, Rule)
+	SLATE_EVENT(FOnPaint, SymbolBrush)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& args);
 	void Reconstruct(LRulePtr item);
+
+protected:
+	FOnPaint SymbolBrush;
 };

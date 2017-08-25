@@ -1,5 +1,6 @@
 #include "LTerrainEditor.h"
 #include "LPatchEditor.h"
+#include "LSymbolSelector.h"
 
 #define LOCTEXT_NAMESPACE "FLTerrainEditorModule"
 
@@ -157,17 +158,13 @@ void SLPatchView::Reconstruct(LPatchPtr item)
 			.Padding(2)
 			.AutoWidth()
 			[
-				SNew(SComboButton)
-				.ButtonContent()
-				[
-					SNew(SBox)
-					.MinDesiredHeight(32)
-					.MinDesiredWidth(32)
-					[
-						SNew(SImage)
-						.ColorAndOpacity(FLinearColor::Blue)
-					]
-				]
+				SNew(SLSymbolSelector)
+				.StartSymbol_Lambda([item]()->LSymbolPtr {
+					return item->matchVal;
+				})
+				.OnSelectionClose_Lambda([item](LSymbolPtr selectedSymbol) {
+					item->matchVal = selectedSymbol;
+				})
 			]
 			+SHorizontalBox::Slot()
 			.Padding(2)
@@ -177,6 +174,7 @@ void SLPatchView::Reconstruct(LPatchPtr item)
 				.Text(LOCTEXT("MatchText2", " and replaces with patch contents:"))
 			]
 		]
+		//TODO: patch parameter UI
 	];
 }
 

@@ -21,7 +21,7 @@ void SLMapEditor::Construct(const FArguments & args)
 			.AutoHeight()
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("BrushLabal", "Selected Brush:"))
+				.Text(LOCTEXT("BrushLabel", "Selected Brush:"))
 			]
 			+ SVerticalBox::Slot()
 			.Padding(2)
@@ -29,6 +29,7 @@ void SLMapEditor::Construct(const FArguments & args)
 			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
+				.AutoWidth()
 				[
 					SAssignNew(brushWidget, SLSymbolSelector)
 				]
@@ -76,6 +77,9 @@ void SLMapEditor::Construct(const FArguments & args)
 			.Padding(2)
 			[
 				SAssignNew(mapViewWidget, SLMapView)
+				.SymbolBrush_Lambda([this]()->LSymbolPtr {
+					return this->brushWidget->selectedSymbol;
+				})
 			]
 		]
 	];

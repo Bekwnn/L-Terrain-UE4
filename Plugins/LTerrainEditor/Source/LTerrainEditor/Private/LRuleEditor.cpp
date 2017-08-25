@@ -29,6 +29,7 @@ void SLRuleEditor::Construct(const FArguments & args)
 			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
+				.AutoWidth()
 				[
 					SAssignNew(brushWidget, SLSymbolSelector)
 				]
@@ -76,6 +77,9 @@ void SLRuleEditor::Construct(const FArguments & args)
 			[
 				SAssignNew(ruleViewWidget, SLRuleView)
 				.Rule(nullptr)
+				.SymbolBrush_Lambda([this]()->LSymbolPtr {
+					return this->brushWidget->selectedSymbol;
+				})
 			]
 		]
 	];
@@ -125,6 +129,7 @@ void SLRuleEditor::SelectionChanged(LRulePtr item, ESelectInfo::Type selectType)
 
 void SLRuleView::Construct(const FArguments & args)
 {
+	SymbolBrush = args._SymbolBrush;
 	Reconstruct(args._Rule);
 }
 
@@ -178,8 +183,13 @@ void SLRuleView::Reconstruct(LRulePtr item)
 				.Padding(2)
 				.AutoWidth()
 				[
-					//TODO: on new selection assign to item->matchval
 					SNew(SLSymbolSelector)
+					.StartSymbol_Lambda([item]()->LSymbolPtr {
+						return item->matchVal;
+					})
+					.OnSelectionClose_Lambda([item](LSymbolPtr selectedSymbol) {
+						item->matchVal = selectedSymbol;
+					})
 				]
 				+ SHorizontalBox::Slot()
 				.Padding(2)
@@ -191,24 +201,40 @@ void SLRuleView::Reconstruct(LRulePtr item)
 			]
 			+ SVerticalBox::Slot()
 			[
+				SNew(SLMapView)
+				.Map(item->replacementVals)
+				.SymbolBrush(SymbolBrush)
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
+				.AutoWidth()
 				[
 					SNew(STextBlock)
 					.Text(FText::FromString("Require Matched Neighbors"))
 				]
 				+ SHorizontalBox::Slot()
+				.AutoWidth()
 				[
 					SNew(SCheckBox)
 					.IsChecked_Lambda([item]()->ECheckBoxState {
 						return (item->bMatchNeighbors)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 					})
+					.OnCheckStateChanged_Lambda([item](ECheckBoxState state) {
+						item->bMatchNeighbors = (state == ECheckBoxState::Checked) ? true : false;
+					})
 				]
 			]
 			+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
 				SNew(SLMapView)
-				.Map(item->replacementVals)
+				.Map(item->matchNeighborsMap)
+				.Visibility_Lambda([item]()->EVisibility {
+					return (item->bMatchNeighbors)? EVisibility::Visible : EVisibility::Collapsed;
+				})
 			]
 		]
 	];

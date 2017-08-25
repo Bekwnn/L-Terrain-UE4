@@ -51,6 +51,9 @@ SourceArt/**/*.tga
 # Binary Files
 Binaries/*
 
+#IN THIS CASE it's a plugin so ignore content
+Content/*
+
 # Builds
 Build/*
 

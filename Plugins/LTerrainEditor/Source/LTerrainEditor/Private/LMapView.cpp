@@ -6,6 +6,7 @@
 
 void SLMapView::Construct(const FArguments & args)
 {
+	SymbolBrush = args._SymbolBrush;
 	Reconstruct(args._Map);
 }
 
@@ -25,6 +26,12 @@ void SLMapView::Reconstruct(LSymbol2DMapPtr item)
 				SNew(SLSymbolBox)
 				.Symbol_Lambda([item, i, j]() {
 					return (*item)[i][j];
+				})
+				.OnLMBOver_Lambda([this, item, i, j]() {
+					if (this->SymbolBrush.IsBound())
+					{
+						(*item)[i][j] = this->SymbolBrush.Execute();
+					}
 				})
 			];
 		}

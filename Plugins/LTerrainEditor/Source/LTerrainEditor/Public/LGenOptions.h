@@ -13,6 +13,9 @@ public:
 
 	void Construct(const FArguments& args);
 
+	FReply OnGenerateClicked();
+
 public:
 	TSharedPtr<FLTerrainEditorModule> lTerrainModule;
 };
+
