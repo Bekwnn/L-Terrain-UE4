@@ -17,6 +17,8 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 	LSymbol2DMapPtr sourceLSymbolMap = lSystem.lSystemLoDs[lSystem.lSystemLoDs.Num() - 1];
 	int sourceSizeX = (*sourceLSymbolMap).Num();
 	int sourceSizeY = (*sourceLSymbolMap)[0].Num();
+	//ComponentSizeVerts taken from LandscapeEdit.cpp, InitHeightmapData checks size as this squared.
+	int32 ComponentSizeVerts = terrain->LandscapeComponents[0]->NumSubsections * (terrain->LandscapeComponents[0]->SubsectionSizeQuads + 1);
 
 	//generate map for symbols and matching patches
 	TMap<LSymbolPtr, LPatchPtr> symbolPatchMap = TMap<LSymbolPtr, LPatchPtr>();
@@ -26,17 +28,33 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 		symbolPatchMap.Add(symbol, matchingPatch);
 	}
 
+	//after heightmap pass, contains a list of unique patches used in the landscape
+	TArray<LPatchPtr> allUsedPatches = TArray<LPatchPtr>();
+
+	///INITIAL ROUGH HEIGHTMAP
+	TArray<uint16> roughHeightmap = TArray<uint16>();
+	roughHeightmap.Reserve(sourceSizeX*sourceSizeY);
+
 	//some constants to be used in generation
 	float u16toMeters = (UINT16_MAX / 2) / 256.f;
 	uint16 zeroHeight = UINT16_MAX / 2;
+
+	for (int i = 0; i < sourceSizeY; ++i)
+	{
+		for (int j = 0; j < sourceSizeX; ++j)
+		{
+			LPatchPtr curPatch = *symbolPatchMap.Find((*sourceLSymbolMap)[i][j]);
+			roughHeightmap.Add(zeroHeight + (int)(FMath::FRandRange(curPatch->minHeight, curPatch->maxHeight) * u16toMeters));
+		}
+	}
+
+	//TODO: smooth rough height map before finer detail step?
 	
 	//goes positive X each +1, then positive Y for a row
 	for (int compIdx = 0; compIdx < landscapeComponentCount; ++compIdx)
 	{
 		ULandscapeComponent* landscapeComponent = terrain->LandscapeComponents[compIdx];
 
-		//ComponentSizeVerts taken from LandscapeEdit.cpp, InitHeightmapData checks size as this squared.
-		int32 ComponentSizeVerts = landscapeComponent->NumSubsections * (landscapeComponent->SubsectionSizeQuads + 1);
 		TArray<FColor> hmapdata = TArray<FColor>();
 		hmapdata.Reserve(FMath::Square(ComponentSizeVerts));
 
@@ -46,60 +64,97 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 			{
 				float xPercCoords = (float)(((compIdx % landscapeComponentCountSqrt) * ComponentSizeVerts) + j) / (float)(landscapeComponentCountSqrt * ComponentSizeVerts);
 				float yPercCoords = (float)(((compIdx / landscapeComponentCountSqrt) * ComponentSizeVerts) + i) / (float)(landscapeComponentCountSqrt * ComponentSizeVerts);
-				LPatchPtr curPatch = *(symbolPatchMap.Find(LSystem::GetMapSymbolFrom01Coords(sourceLSymbolMap, xPercCoords, yPercCoords)));
-				//generate height value based on patch settings
+				float xFloatCoords = xPercCoords * sourceSizeX;
+				float yFloatCoords = yPercCoords * sourceSizeY;
+				int xFloorCoords = FMath::FloorToInt(xFloatCoords-0.5f);
+				int yFloorCoords = FMath::FloorToInt(yFloatCoords-0.5f);
 				
-				//TODO better heightmap
-				uint16 heightval = zeroHeight + (int)(FMath::FRandRange(curPatch->minHeight, curPatch->maxHeight) * u16toMeters);
+				LPatchPtr curPatch = *(symbolPatchMap.Find(LSystem::GetMapSymbolFrom01Coords(sourceLSymbolMap, xPercCoords, yPercCoords)));
+				allUsedPatches.AddUnique(curPatch);
+
+				//TODO: noise
+				//generate height value based on patch settings
+				uint16 heightval = (int)FMath::BiLerp(
+					(float)roughHeightmap[FMath::Max(yFloorCoords, 0)               * sourceSizeY + FMath::Max(xFloorCoords, 0)              ],
+					(float)roughHeightmap[FMath::Max(yFloorCoords, 0)               * sourceSizeY + FMath::Min(xFloorCoords+1, sourceSizeX-1)],
+					(float)roughHeightmap[FMath::Min(yFloorCoords+1, sourceSizeY-1) * sourceSizeY + FMath::Max(xFloorCoords, 0)              ],
+					(float)roughHeightmap[FMath::Min(yFloorCoords+1, sourceSizeY-1) * sourceSizeY + FMath::Min(xFloorCoords+1, sourceSizeX-1)],
+					FMath::Frac(xFloatCoords + 0.5f),
+					FMath::Frac(yFloatCoords + 0.5f)
+				);
 
 				//data stored in RGBA 32 bit format, RG is 16 bit heightmap data
 				hmapdata.Add(FColor(heightval >> 8, heightval & 0xFF, 0));
 			}
 		}
 
+		//TODO, parse hmapdata and post process it
 		landscapeComponent->InitHeightmapData(hmapdata, true);
+	}
+	
+	int layerCount = 0;
+	TArray<ULandscapeLayerInfoObject*> layerInfos = TArray<ULandscapeLayerInfoObject*>();
+	TMap<LPatchPtr, int> patchToStartLayer = TMap<LPatchPtr, int>();
+	for (LPatchPtr patch : allUsedPatches)
+	{
+		patchToStartLayer.Add(patch, layerCount);
+		for (LGroundTexture& tex : patch->groundTextures)
+		{
+			//TODO: create layerinfo using tex data
+			layerInfos.Add(nullptr);
+			++layerCount;
+		}
+	}
+
+	if (layerCount != 0)
+	{
+		for (int compIdx = 0; compIdx < landscapeComponentCount; ++compIdx)
+		{
+			ULandscapeComponent* landscapeComponent = terrain->LandscapeComponents[compIdx];
+
+			TArray<TArray<uint8>> weightData = TArray<TArray<uint8>>(); //stored as [layer][datapos]
+
+			//init weight data to 0
+			weightData.Init(TArray<uint8>(), layerCount);
+			for (int i = 0; i < layerCount; ++i)
+			{
+				weightData[i].Init(0, FMath::Square(ComponentSizeVerts));
+			}
+
+			for (int i = 0; i < ComponentSizeVerts; ++i)
+			{
+				for (int j = 0; j < ComponentSizeVerts; ++j)
+				{
+					float xPercCoords = (float)(((compIdx % landscapeComponentCountSqrt) * ComponentSizeVerts) + j) / (float)(landscapeComponentCountSqrt * ComponentSizeVerts);
+					float yPercCoords = (float)(((compIdx / landscapeComponentCountSqrt) * ComponentSizeVerts) + i) / (float)(landscapeComponentCountSqrt * ComponentSizeVerts);
+
+					LPatchPtr curPatch = *(symbolPatchMap.Find(LSystem::GetMapSymbolFrom01Coords(sourceLSymbolMap, xPercCoords, yPercCoords)));
+
+					int patchIdxStart = *patchToStartLayer.Find(curPatch);
+					for (int texIdx = 0; texIdx < curPatch->groundTextures.Num(); ++texIdx)
+					{
+						//TODO: generate paint weights (how does ue4 handle weights?)
+						weightData[patchIdxStart + texIdx][i*ComponentSizeVerts + j] = 64; //0.25 weight for now
+					}
+				}
+			}
+
+			//landscapeComponent->InitWeightmapData(layerInfos, weightData);
+		}
+	}
+
+	///UPDATE TERRAIN START
+	for (ULandscapeComponent* landscapeComponent : terrain->LandscapeComponents)
+	{
 		landscapeComponent->UpdateMaterialInstances();
 		landscapeComponent->UpdateCollisionLayerData();
 		landscapeComponent->UpdateCachedBounds();
 		//TODO: figure out other functions to call to update lightmap, correct component seams
 	}
+	///UPDATE TERRAIN END
 }
 
-void LTerrainGeneration::GenerateMipMaps(ULandscapeComponent* landscapeComponent)
+ULandscapeLayerInfoObject* LTerrainGeneration::CreateLayerInfoAsset(LGroundTexture & layerInfo)
 {
-	UTexture2D* tex = landscapeComponent->HeightmapTexture;
-	TArray<FColor*> heightMapData;
-	for (int i = 0; i < tex->GetNumMips(); ++i)
-	{
-		heightMapData.Add((FColor*)tex->Source.LockMip(i));
-	}
-	for (int i = 0; i < tex->GetNumMips()-1; ++i)
-	{
-		int div = FMath::Pow(2, i + 1);
-		int sizeX = tex->GetSizeX() / div;
-		int sizeY = tex->GetSizeY() / div;
-		for (int X = 0; X < sizeX; ++X)
-		{
-			for (int Y = 0; Y < sizeY; ++Y)
-			{
-				int aboveIdx00 = X * 2 * sizeY + Y * 2;
-				int aboveIdx01 = aboveIdx00 + 1;
-				int aboveIdx10 = aboveIdx00 + 2 * sizeY;
-				int aboveIdx11 = aboveIdx10 + 1;
-
-				uint16 average =
-					0.25f * (heightMapData[i][aboveIdx00].R << 8 | heightMapData[i][aboveIdx00].G) +
-					0.25f * (heightMapData[i][aboveIdx01].R << 8 | heightMapData[i][aboveIdx01].G) +
-					0.25f * (heightMapData[i][aboveIdx10].R << 8 | heightMapData[i][aboveIdx10].G) +
-					0.25f * (heightMapData[i][aboveIdx11].R << 8 | heightMapData[i][aboveIdx11].G);
-
-				heightMapData[i + 1][X*sizeX + Y].R = average >> 8;
-				heightMapData[i + 1][X*sizeX + Y].G = average;
-			}
-		}
-	}
-	for (int i = 0; i < tex->GetNumMips(); ++i)
-	{
-		tex->Source.UnlockMip(i);
-	}
+	return nullptr;
 }

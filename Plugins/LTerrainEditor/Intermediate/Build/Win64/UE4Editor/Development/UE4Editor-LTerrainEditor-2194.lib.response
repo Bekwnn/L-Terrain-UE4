@@ -1,0 +1,22 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+/DEF
+/NAME:"UE4Editor-LTerrainEditor-2194.dll"
+/IGNORE:4221
+/NODEFAULTLIB:"LIBCMT"
+/NODEFAULTLIB:"LIBCPMT"
+/NODEFAULTLIB:"LIBCMTD"
+/NODEFAULTLIB:"LIBCPMTD"
+/NODEFAULTLIB:"MSVCRTD"
+/NODEFAULTLIB:"MSVCPRTD"
+/NODEFAULTLIB:"LIBC"
+/NODEFAULTLIB:"LIBCP"
+/NODEFAULTLIB:"LIBCD"
+/NODEFAULTLIB:"LIBCPD"
+"C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Intermediate\Build\Win64\UE4Editor\Development\LTerrainEditor\PCH.LTerrainEditor.h.obj"
+"C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Intermediate\Build\Win64\UE4Editor\Development\LTerrainEditor\Module.LTerrainEditor.cpp.obj"
+"C:\Program Files\Epic Games\UE_4.15\Engine\Intermediate\Build\Win64\UE4Editor\Development\LTerrainEditor\PCLaunch.rc.res"
+"C:\Program Files\Epic Games\UE_4.15\Engine\Intermediate\Build\Win64\UE4Editor\Development\ModuleVersionResource.rc.inl.res"
+/OUT:"C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Intermediate\Build\Win64\UE4Editor\Development\UE4Editor-LTerrainEditor-2194.lib"

@@ -87,7 +87,7 @@ LSymbol2DMapPtr LSystem::IterateLString(LSymbol2DMapPtr source)
 	{
 		for (int j = 0; j < jdim; ++j)
 		{
-			LRulePtr matchingRule = GetLRuleMatch(source, i, j);
+			LRulePtr matchingRule = GetLRuleMatch(source, j, i);
 
 			for (int i2 = 0; i2 < DIMS; ++i2)
 			{

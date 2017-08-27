@@ -8,5 +8,5 @@ public:
 	static void GenerateTerrain(LSystem& lSystem, ALandscape* terrain);
 
 private:
-	static void GenerateMipMaps(ULandscapeComponent* landscapeComponent);
+	static ULandscapeLayerInfoObject* CreateLayerInfoAsset(LGroundTexture& layerInfo);
 };

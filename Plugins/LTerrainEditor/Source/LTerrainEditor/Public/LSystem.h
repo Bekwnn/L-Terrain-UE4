@@ -89,18 +89,18 @@ public:
 		matchVal = LSymbolPtr();
 		minHeight = 0.f;
 		maxHeight = 0.f;
-		noiseMaps = TArray<LNoise*>();
-		objectScatters = TArray<LObjectScatter*>();
-		groundTextures = TArray<LGroundTexture*>();
+		noiseMaps = TArray<LNoise>();
+		objectScatters = TArray<LObjectScatter>();
+		groundTextures = TArray<LGroundTexture>();
 	}
 
 	FString name;
 	LSymbolPtr matchVal;
 	float minHeight;
 	float maxHeight;
-	TArray<LNoise*> noiseMaps;
-	TArray<LObjectScatter*> objectScatters;
-	TArray<LGroundTexture*> groundTextures;
+	TArray<LNoise> noiseMaps;
+	TArray<LObjectScatter> objectScatters;
+	TArray<LGroundTexture> groundTextures; //first entry should be used as base
 };
 
 class LNoise
@@ -112,12 +112,16 @@ class LNoise
 
 class LObjectScatter
 {
+	FString name;
+	FAssetData object;
 	float frequency;
-	//TODO: distribution method
+	//TODO: distribution, noise etc
 
 };
 
 class LGroundTexture
 {
-
+	FString layerNames;
+	FAssetData layerTextures;
+	//TODO distribution, noise etc
 };
