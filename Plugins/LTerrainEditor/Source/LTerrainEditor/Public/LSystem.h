@@ -1,16 +1,18 @@
 #pragma once
 #include "LTerrainEditor.h"
+#include "LNoise.h"
 
 class LPatch;
 class LRule;
 class LSymbol;
 class LGroundTexture;
 class LObjectScatter;
-class LNoise;
 
 typedef TSharedPtr<LSymbol> LSymbolPtr;
 typedef TSharedPtr<LRule> LRulePtr;
 typedef TSharedPtr<LPatch> LPatchPtr;
+typedef TSharedPtr<LGroundTexture> LGroundTexturePtr;
+typedef TSharedPtr<LObjectScatter> LObjectScatterPtr;
 typedef TArray<TArray<TSharedPtr<LSymbol>>> LSymbol2DMap;
 typedef TSharedPtr<LSymbol2DMap> LSymbol2DMapPtr;
 
@@ -89,29 +91,23 @@ public:
 		matchVal = LSymbolPtr();
 		minHeight = 0.f;
 		maxHeight = 0.f;
-		noiseMaps = TArray<LNoise>();
-		objectScatters = TArray<LObjectScatter>();
-		groundTextures = TArray<LGroundTexture>();
+		noiseMaps = TArray<TSharedPtr<LNoise>>();
+		groundTextures = TArray<TSharedPtr<LGroundTexture>>();
+		objectScatters = TArray<TSharedPtr<LObjectScatter>>();
 	}
 
 	FString name;
 	LSymbolPtr matchVal;
 	float minHeight;
 	float maxHeight;
-	TArray<LNoise> noiseMaps;
-	TArray<LObjectScatter> objectScatters;
-	TArray<LGroundTexture> groundTextures; //first entry should be used as base
-};
-
-class LNoise
-{
-	float frequency;
-	float amplitude; //in meters
-	//TODO: has a delegate which returns 01 heightmap value?
+	TArray<TSharedPtr<LNoise>> noiseMaps;
+	TArray<TSharedPtr<LGroundTexture>> groundTextures; //first entry should be used as base
+	TArray<TSharedPtr<LObjectScatter>> objectScatters;
 };
 
 class LObjectScatter
 {
+public:
 	FString name;
 	FAssetData object;
 	float frequency;
@@ -121,7 +117,8 @@ class LObjectScatter
 
 class LGroundTexture
 {
-	FString layerNames;
-	FAssetData layerTextures;
+public:
+	FString name;
+	FAssetData texture;
 	//TODO distribution, noise etc
 };

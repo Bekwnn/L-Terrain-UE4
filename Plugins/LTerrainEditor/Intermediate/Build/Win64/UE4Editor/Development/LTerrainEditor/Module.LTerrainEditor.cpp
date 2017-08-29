@@ -2,6 +2,7 @@
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LGenOptions.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LMapEditor.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LMapView.cpp"
+#include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LNoise.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LPatchEditor.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LRuleEditor.cpp"
 #include "C:\Users\Bekwnn2\Documents\Unreal Projects\LTerrain\Plugins\LTerrainEditor\Source\LTerrainEditor\Private\LSymbolBox.cpp"

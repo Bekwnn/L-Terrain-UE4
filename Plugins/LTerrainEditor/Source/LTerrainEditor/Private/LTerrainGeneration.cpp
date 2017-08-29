@@ -36,7 +36,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 	roughHeightmap.Reserve(sourceSizeX*sourceSizeY);
 
 	//some constants to be used in generation
-	float u16toMeters = (UINT16_MAX / 2) / 256.f;
+	float metersToU16 = (UINT16_MAX / 2) / 256.f;
 	uint16 zeroHeight = UINT16_MAX / 2;
 
 	for (int i = 0; i < sourceSizeY; ++i)
@@ -44,7 +44,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 		for (int j = 0; j < sourceSizeX; ++j)
 		{
 			LPatchPtr curPatch = *symbolPatchMap.Find((*sourceLSymbolMap)[i][j]);
-			roughHeightmap.Add(zeroHeight + (int)(FMath::FRandRange(curPatch->minHeight, curPatch->maxHeight) * u16toMeters));
+			roughHeightmap.Add(zeroHeight + (int)(FMath::FRandRange(curPatch->minHeight, curPatch->maxHeight) * metersToU16));
 		}
 	}
 
@@ -83,6 +83,13 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 					FMath::Frac(yFloatCoords + 0.5f)
 				);
 
+				for (LNoisePtr noise : curPatch->noiseMaps)
+				{
+					//in a normally scaled landscape a quad is 1x1 meters
+					//a frequency of 1.0f repeats every 10 meters if it's a texture
+					heightval += metersToU16 * noise->Noise(((compIdx % sourceSizeX) + j)*0.1f, ((compIdx / sourceSizeX) + i)*0.1f);
+				}
+
 				//data stored in RGBA 32 bit format, RG is 16 bit heightmap data
 				hmapdata.Add(FColor(heightval >> 8, heightval & 0xFF, 0));
 			}
@@ -98,7 +105,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 	for (LPatchPtr patch : allUsedPatches)
 	{
 		patchToStartLayer.Add(patch, layerCount);
-		for (LGroundTexture& tex : patch->groundTextures)
+		for (LGroundTexturePtr tex : patch->groundTextures)
 		{
 			//TODO: create layerinfo using tex data
 			layerInfos.Add(nullptr);
@@ -149,7 +156,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 		landscapeComponent->UpdateMaterialInstances();
 		landscapeComponent->UpdateCollisionLayerData();
 		landscapeComponent->UpdateCachedBounds();
-		//TODO: figure out other functions to call to update lightmap, correct component seams
+		//TODO: figure out other functions to call to update lightmap
 	}
 	///UPDATE TERRAIN END
 }
