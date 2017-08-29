@@ -44,6 +44,7 @@ public:
 	virtual void Initialize(int32 seed) = 0;
 
 protected:
+	int32 seed;
 	std::default_random_engine generator;
 };
 
@@ -53,6 +54,7 @@ public:
 	LColoredNoise(float exponent);
 	virtual float Noise(float x, float y) override;
 	virtual void Initialize(int32 seed) override;
+
 private:
 	float exponent; //better understand how different colored noises work, maybe change this
 };
@@ -63,7 +65,11 @@ public:
 	LPerlinNoise();
 	virtual float Noise(float x, float y) override;
 	virtual void Initialize(int32 seed) override;
+
 private:
 	float DotGrad(int ix, int iy, float x, float y);
 	float EaseFunction(float t);
+
+private:
+	std::uniform_real_distribution<float> gradVecRotDistribution;
 };

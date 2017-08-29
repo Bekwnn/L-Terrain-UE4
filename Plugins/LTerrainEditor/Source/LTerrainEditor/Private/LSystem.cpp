@@ -177,7 +177,7 @@ LSymbolPtr LSystem::GetMapSymbolFrom01Coords(LSymbol2DMapPtr map, float xPercCoo
 
 	int xIdx = FMath::FloorToInt(xPercCoord * xdim);
 	int yIdx = FMath::FloorToInt(yPercCoord * ydim);
-	return (*map)[xIdx][yIdx];
+	return (*map)[yIdx][xIdx];
 }
 
 LSymbolPtr LSystem::GetDefaultSymbol()

@@ -61,6 +61,7 @@ void LNoise::InitNoise(int32 seed)
 
 LPerlinNoise::LPerlinNoise()
 {
+	gradVecRotDistribution = std::uniform_real_distribution<float>(0.f, 360.f);
 }
 
 float LPerlinNoise::Noise(float x, float y)
@@ -87,14 +88,15 @@ float LPerlinNoise::Noise(float x, float y)
 
 void LPerlinNoise::Initialize(int32 seed)
 {
-	generator.seed(seed);
+	this->seed = seed;
 }
 
 float LPerlinNoise::DotGrad(int ix, int iy, float x, float y)
 {
 	//get our vector using our seed
-	//to get unique seed val from ix, iy, using: (ix*bigPrimeA + ix) + (iy*bigPrimeB + iy)
-	FVector2D gridVec = FVector2D(1.f, 0.f).GetRotated(FMath::RandRange(0.f, 360.f));
+	//to get semi-unique seed val from ix, iy, using: (ix*primeA + ix) + (iy*primeB + iy)
+	generator.seed(seed + (ix * 47 + ix) + (iy * 113 + iy));
+	FVector2D gridVec = FVector2D(1.f, 0.f).GetRotated(gradVecRotDistribution(generator));
 
 	float dx = x - ix;
 	float dy = y - iy;
@@ -120,5 +122,5 @@ float LColoredNoise::Noise(float x, float y)
 
 void LColoredNoise::Initialize(int32 seed)
 {
-	generator.seed(seed);
+	this->seed = seed;
 }

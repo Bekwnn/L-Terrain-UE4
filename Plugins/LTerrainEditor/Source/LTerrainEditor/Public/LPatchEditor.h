@@ -57,6 +57,8 @@ public:
 	void ScatterSelectionChanged(LObjectScatterPtr item, ESelectInfo::Type selectType);
 
 private:
+	LPatchPtr patch;
+
 	TSharedPtr<SListView<LNoisePtr>> noiseListWidget;
 	TSharedPtr<SLNoiseView> noiseView;
 
@@ -76,6 +78,11 @@ public:
 
 	void Construct(const FArguments& args);
 	void Reconstruct(LNoisePtr item);
+
+	void NoiseTypeSelectionChanged(TSharedPtr<FString> string, ESelectInfo::Type selectType);
+
+public:
+	static TArray<TSharedPtr<FString>> noiseNames;
 };
 
 class SLGroundTexView : public SCompoundWidget

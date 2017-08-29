@@ -113,6 +113,9 @@ void SLPatchView::Construct(const FArguments & args)
 void SLPatchView::Reconstruct(LPatchPtr item)
 {
 	if (!item.IsValid()) return;
+
+	//save the patch argument for later use
+	patch = item;
 	
 	ChildSlot
 	[
@@ -175,51 +178,182 @@ void SLPatchView::Reconstruct(LPatchPtr item)
 			]
 		]
 		+ SVerticalBox::Slot()
+		.Padding(2)
+		.AutoHeight()
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
 			[
-				SAssignNew(noiseListWidget, SListView<LNoisePtr>)
-				.ListItemsSource(&item->noiseMaps)
-				.OnGenerateRow(this, &SLPatchView::GenerateNoiseListRow)
-				.OnSelectionChanged(this, &SLPatchView::NoiseSelectionChanged)
-				.SelectionMode(ESelectionMode::Single)
+				SNew(STextBlock)
+				.Text(LOCTEXT("PatchHeightMin", "Height Min:"))
 			]
 			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
 			[
-				SNew(SLNoiseView)
+				SNew(SSpinBox<float>)
+				.MinValue(-250.f)
+				.MaxValue(250.f)
+				.MinDesiredWidth(80.f)
+				.Value_Lambda([item]()->float {
+					return item->minHeight;
+				})
+				.OnValueChanged_Lambda([item](float val) {
+					item->minHeight = FMath::Clamp(val, -250.f, item->maxHeight);
+				})
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("PatchHeightMax", "Max:"))
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
+			[
+				SNew(SSpinBox<float>)
+				.MinValue(-250.f)
+				.MaxValue(250.f)
+				.MinDesiredWidth(80.f)
+				.Value_Lambda([item]()->float {
+					return item->maxHeight;
+				})
+				.OnValueChanged_Lambda([item](float val) {
+					item->maxHeight = FMath::Clamp(val, item->minHeight, 250.f);
+				})
 			]
 		]
 		+ SVerticalBox::Slot()
+		.AutoHeight()
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
 			[
-				SAssignNew(groundTexListWidget, SListView<LGroundTexturePtr>)
-				.ListItemsSource(&item->groundTextures)
-				.OnGenerateRow(this, &SLPatchView::GenerateGroundTexListRow)
-				.OnSelectionChanged(this, &SLPatchView::GroundTexSelectionChanged)
-				.SelectionMode(ESelectionMode::Single)
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.Padding(2)
+				.FillHeight(1)
+				[
+					SAssignNew(noiseListWidget, SListView<LNoisePtr>)
+					.ListItemsSource(&item->noiseMaps)
+					.OnGenerateRow(this, &SLPatchView::GenerateNoiseListRow)
+					.OnSelectionChanged(this, &SLPatchView::NoiseSelectionChanged)
+					.SelectionMode(ESelectionMode::Single)
+				]
+				+ SVerticalBox::Slot()
+				.Padding(2)
+				.AutoHeight()
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("NoiseAdd", "+ Add Noise"))
+					.OnClicked(FOnClicked::CreateRaw(this, &SLPatchView::OnNoiseAdded))
+				]
+				+ SVerticalBox::Slot()
+				.Padding(2)
+				.AutoHeight()
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("NoiseDel", "- Del Selected Noise"))
+					.OnClicked(FOnClicked::CreateRaw(this, &SLPatchView::OnNoiseRemoved))
+				]
 			]
 			+ SHorizontalBox::Slot()
+			.Padding(2)
 			[
-				SNew(SLGroundTexView)
+				SAssignNew(noiseView, SLNoiseView)
+				.Noise(nullptr)
 			]
 		]
 		+ SVerticalBox::Slot()
+		.AutoHeight()
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
 			[
-				SAssignNew(scatterListWidget, SListView<LObjectScatterPtr>)
-				.ListItemsSource(&item->objectScatters)
-				.OnGenerateRow(this, &SLPatchView::GenerateScatterListRow)
-				.OnSelectionChanged(this, &SLPatchView::ScatterSelectionChanged)
-				.SelectionMode(ESelectionMode::Single)
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.Padding(2)
+				.FillHeight(1)
+				[
+					SAssignNew(groundTexListWidget, SListView<LGroundTexturePtr>)
+					.ListItemsSource(&item->groundTextures)
+					.OnGenerateRow(this, &SLPatchView::GenerateGroundTexListRow)
+					.OnSelectionChanged(this, &SLPatchView::GroundTexSelectionChanged)
+					.SelectionMode(ESelectionMode::Single)
+				]
+				+ SVerticalBox::Slot()
+				.Padding(2)
+				.AutoHeight()
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("TexAdd", "+ Add Texture"))
+					.OnClicked(FOnClicked::CreateRaw(this, &SLPatchView::OnGroundTexAdded))
+				]
+				+ SVerticalBox::Slot()
+				.Padding(2)
+				.AutoHeight()
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("TexDel", "- Del Selected Texture"))
+					.OnClicked(FOnClicked::CreateRaw(this, &SLPatchView::OnGroundTexRemoved))
+				]
 			]
 			+ SHorizontalBox::Slot()
+			.Padding(2)
 			[
-				SNew(SLScatterView)
+				SAssignNew(groundTexView, SLGroundTexView)
+				.GroundTexture(nullptr)
+			]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.Padding(2)
+				.FillHeight(1)
+				[
+					SAssignNew(scatterListWidget, SListView<LObjectScatterPtr>)
+					.ListItemsSource(&item->objectScatters)
+					.OnGenerateRow(this, &SLPatchView::GenerateScatterListRow)
+					.OnSelectionChanged(this, &SLPatchView::ScatterSelectionChanged)
+					.SelectionMode(ESelectionMode::Single)
+				]
+				+ SVerticalBox::Slot()
+				.Padding(2)
+				.AutoHeight()
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("ScatterAdd", "+ Add Scatter"))
+					.OnClicked(FOnClicked::CreateRaw(this, &SLPatchView::OnScatterAdded))
+				]
+				+ SVerticalBox::Slot()
+				.Padding(2)
+				.AutoHeight()
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("ScatterDel", "- Del Selected Scatter"))
+					.OnClicked(FOnClicked::CreateRaw(this, &SLPatchView::OnScatterRemoved))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(2)
+			[
+				SAssignNew(scatterView, SLScatterView)
+				.ObjectScatter(nullptr)
 			]
 		]
 	];
@@ -227,15 +361,27 @@ void SLPatchView::Reconstruct(LPatchPtr item)
 
 FReply SLPatchView::OnNoiseAdded()
 {
-	//TODO
+	LNoisePtr newNoise = LNoisePtr(new LNoise(ENoiseType::WHITE));
+	newNoise->frequency = 1.f;
+	newNoise->amplitude = 2.f;
+	patch->noiseMaps.Add(newNoise);
 
+	noiseListWidget->SetSelection(newNoise);
+	noiseListWidget->RequestListRefresh();
 	
 	return FReply::Handled();
 }
 
 FReply SLPatchView::OnNoiseRemoved()
 {
-	//TODO
+	TArray<LNoisePtr> selectedItems = noiseListWidget->GetSelectedItems();
+	for (LNoisePtr item : selectedItems)
+	{
+		patch->noiseMaps.Remove(item);
+	}
+
+	noiseListWidget->ClearSelection();
+	noiseListWidget->RequestListRefresh();
 
 	return FReply::Handled();
 }
@@ -278,14 +424,26 @@ void SLPatchView::NoiseSelectionChanged(LNoisePtr item, ESelectInfo::Type select
 
 FReply SLPatchView::OnGroundTexAdded()
 {
-	//TODO
+	LGroundTexturePtr newGroundTex = LGroundTexturePtr(new LGroundTexture());
+	newGroundTex->name = "New Ground Texture";
+	patch->groundTextures.Add(newGroundTex);
+
+	groundTexListWidget->SetSelection(newGroundTex);
+	groundTexListWidget->RequestListRefresh();
 
 	return FReply::Handled();
 }
 
 FReply SLPatchView::OnGroundTexRemoved()
 {
-	//TODO
+	TArray<LGroundTexturePtr> selectedItems = groundTexListWidget->GetSelectedItems();
+	for (LGroundTexturePtr item : selectedItems)
+	{
+		patch->groundTextures.Remove(item);
+	}
+
+	groundTexListWidget->ClearSelection();
+	groundTexListWidget->RequestListRefresh();
 
 	return FReply::Handled();
 }
@@ -307,14 +465,26 @@ void SLPatchView::GroundTexSelectionChanged(LGroundTexturePtr item, ESelectInfo:
 
 FReply SLPatchView::OnScatterAdded()
 {
-	//TODO
+	LObjectScatterPtr newScatter = LObjectScatterPtr(new LObjectScatter());
+	newScatter->name = "New Object Scatter";
+	patch->objectScatters.Add(newScatter);
+
+	scatterListWidget->SetSelection(newScatter);
+	scatterListWidget->RequestListRefresh();
 
 	return FReply::Handled();
 }
 
 FReply SLPatchView::OnScatterRemoved()
 {
-	//TODO
+	TArray<LObjectScatterPtr> selectedItems = scatterListWidget->GetSelectedItems();
+	for (LObjectScatterPtr item : selectedItems)
+	{
+		patch->objectScatters.Remove(item);
+	}
+
+	scatterListWidget->ClearSelection();
+	scatterListWidget->RequestListRefresh();
 
 	return FReply::Handled();
 }
@@ -334,6 +504,14 @@ void SLPatchView::ScatterSelectionChanged(LObjectScatterPtr item, ESelectInfo::T
 	scatterView->Reconstruct(item);
 }
 
+//used as text fields for enum selection
+TArray<TSharedPtr<FString>> SLNoiseView::noiseNames = {
+	TSharedPtr<FString>(new FString("White Noise")),
+	TSharedPtr<FString>(new FString("Red Noise")),
+	TSharedPtr<FString>(new FString("Blue Noise")),
+	TSharedPtr<FString>(new FString("Perlin Noise"))
+};
+
 void SLNoiseView::Construct(const FArguments& args)
 {
 	Reconstruct(args._Noise);
@@ -341,37 +519,77 @@ void SLNoiseView::Construct(const FArguments& args)
 
 void SLNoiseView::Reconstruct(LNoisePtr item)
 {
-	if (item.IsValid()) return;
+	if (!item.IsValid()) return;
 
 	ChildSlot
 	[
-		SNew(STextBlock)
-		.Text(FText::FromString("Placeholder noise text."))
-	];
-		/*
+		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
+		.Padding(2)
+		.AutoHeight()
+		[
+			SNew(STextComboBox)
+			.InitiallySelectedItem(noiseNames[(int)item->GetNoiseType()])
+			.OptionsSource(&noiseNames)
+			.OnSelectionChanged_Lambda([item, this](TSharedPtr<FString> string, ESelectInfo::Type selectType) {
+				ENoiseType newNoiseType = (ENoiseType)noiseNames.Find(string);
+				*item = LNoise(newNoiseType);
+				item->frequency = 1.f;
+				item->amplitude = 2.f;
+				this->Reconstruct(item);
+			})
+		]
+		+ SVerticalBox::Slot()
+		.Padding(2)
+		.AutoHeight()
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("PatchHeightMin", "Height Min:"))
+				.Text(LOCTEXT("PatchFrequency", "Frequency:"))
 			]
 			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
 			[
-				SNew(SSpinBox<float>)//TODO: make do something
+				SNew(SSpinBox<float>)
+				.MinDesiredWidth(80.f)
+				.MinValue(0.001f)
+				.MaxValue(10.f)
+				.Value_Lambda([item]()->float {
+					return item->frequency;
+				})
+				.OnValueChanged_Lambda([item](float val) {
+					item->frequency = val;
+				})
 			]
 			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("PatchHeightMax", "Max:"))
+				.Text(LOCTEXT("PatchAmplitude", " Amplitude:"))
 			]
 			+ SHorizontalBox::Slot()
+			.Padding(2)
+			.AutoWidth()
 			[
-				SNew(SSpinBox<float>)//TODO: make do something
+				SNew(SSpinBox<float>)
+				.MinDesiredWidth(80.f)
+				.MinValue(0.f)
+				.MaxValue(10.f)
+				.Value_Lambda([item]()->float {
+					return item->amplitude;
+				})
+				.OnValueChanged_Lambda([item](float val) {
+					item->amplitude = val;
+				})
 			]
 		]
-		*/
+	];
 }
 
 void SLGroundTexView::Construct(const FArguments& args)
@@ -381,7 +599,7 @@ void SLGroundTexView::Construct(const FArguments& args)
 
 void SLGroundTexView::Reconstruct(LGroundTexturePtr item)
 {
-	if (item.IsValid()) return;
+	if (!item.IsValid()) return;
 
 	ChildSlot
 	[
@@ -397,7 +615,7 @@ void SLScatterView::Construct(const FArguments& args)
 
 void SLScatterView::Reconstruct(LObjectScatterPtr item)
 {
-	if (item.IsValid()) return;
+	if (!item.IsValid()) return;
 
 	ChildSlot
 	[

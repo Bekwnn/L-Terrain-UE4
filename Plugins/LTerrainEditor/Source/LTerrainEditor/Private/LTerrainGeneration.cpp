@@ -72,7 +72,6 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 				LPatchPtr curPatch = *(symbolPatchMap.Find(LSystem::GetMapSymbolFrom01Coords(sourceLSymbolMap, xPercCoords, yPercCoords)));
 				allUsedPatches.AddUnique(curPatch);
 
-				//TODO: noise
 				//generate height value based on patch settings
 				uint16 heightval = (int)FMath::BiLerp(
 					(float)roughHeightmap[FMath::Max(yFloorCoords, 0)               * sourceSizeY + FMath::Max(xFloorCoords, 0)              ],
@@ -87,7 +86,11 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 				{
 					//in a normally scaled landscape a quad is 1x1 meters
 					//a frequency of 1.0f repeats every 10 meters if it's a texture
-					heightval += metersToU16 * noise->Noise(((compIdx % sourceSizeX) + j)*0.1f, ((compIdx / sourceSizeX) + i)*0.1f);
+					//notes: ComponentSizeVerts-1 because 1 vertex overlaps between each landscape component
+					heightval += metersToU16 * noise->Noise(
+						((compIdx % landscapeComponentCountSqrt)*(ComponentSizeVerts - 1) + j)*0.1f,
+						((compIdx / landscapeComponentCountSqrt)*(ComponentSizeVerts - 1) + i)*0.1f
+						);
 				}
 
 				//data stored in RGBA 32 bit format, RG is 16 bit heightmap data
