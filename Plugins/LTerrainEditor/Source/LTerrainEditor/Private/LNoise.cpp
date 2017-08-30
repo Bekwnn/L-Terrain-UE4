@@ -8,11 +8,11 @@ LNoise::LNoise(ENoiseType noiseType)
 	InitNoise(FMath::RandRange(INT32_MIN, INT32_MAX));
 }
 
-LNoise::LNoise(ENoiseType noiseType, int32 seed)
+LNoise::LNoise(ENoiseType noiseType, int32 seedVal)
 {
 	this->noiseType = noiseType;
 
-	InitNoise(seed);
+	InitNoise(seedVal);
 }
 
 void LNoise::Reseed()
@@ -20,9 +20,9 @@ void LNoise::Reseed()
 	noiseObject->Initialize(FMath::RandRange(INT32_MIN, INT32_MAX));
 }
 
-void LNoise::Reseed(int32 seed)
+void LNoise::Reseed(int32 seedVal)
 {
-	noiseObject->Initialize(seed);
+	noiseObject->Initialize(seedVal);
 }
 
 ENoiseType LNoise::GetNoiseType()
@@ -36,7 +36,7 @@ float LNoise::Noise(float x, float y)
 	return amplitude * (noiseObject->Noise(frequency*x, frequency*y) - 0.5f);
 }
 
-void LNoise::InitNoise(int32 seed)
+void LNoise::InitNoise(int32 seedVal)
 {
 	switch (noiseType)
 	{
@@ -56,7 +56,7 @@ void LNoise::InitNoise(int32 seed)
 		break;
 	}
 
-	noiseObject->Initialize(seed);
+	noiseObject->Initialize(seedVal);
 }
 
 LPerlinNoise::LPerlinNoise()
@@ -86,7 +86,7 @@ float LPerlinNoise::Noise(float x, float y)
 	return FMath::Lerp(lerpx0, lerpx1, yFracEase);
 }
 
-void LPerlinNoise::Initialize(int32 seed)
+void LPerlinNoise::Initialize(int32 seedVal)
 {
 	this->seed = seed;
 }
@@ -117,10 +117,10 @@ LColoredNoise::LColoredNoise(float exponent)
 
 float LColoredNoise::Noise(float x, float y)
 {
-	return 0.0f;
+	return 0.5f; //TODO: does nothing
 }
 
-void LColoredNoise::Initialize(int32 seed)
+void LColoredNoise::Initialize(int32 seedVal)
 {
-	this->seed = seed;
+	this->seed = seedVal;
 }

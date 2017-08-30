@@ -19,9 +19,9 @@ class LNoise
 {
 public:
 	LNoise(ENoiseType noiseType);
-	LNoise(ENoiseType noiseType, int32 seed);
+	LNoise(ENoiseType noiseType, int32 seedVal);
 	void Reseed();
-	void Reseed(int32 seed);
+	void Reseed(int32 seedVal);
 	ENoiseType GetNoiseType();
 	float Noise(float x, float y);
 
@@ -41,7 +41,7 @@ class LNoiseObject
 {
 public:
 	virtual float Noise(float x, float y) = 0;
-	virtual void Initialize(int32 seed) = 0;
+	virtual void Initialize(int32 seedVal) = 0;
 
 protected:
 	int32 seed;
@@ -53,7 +53,7 @@ class LColoredNoise : public LNoiseObject
 public:
 	LColoredNoise(float exponent);
 	virtual float Noise(float x, float y) override;
-	virtual void Initialize(int32 seed) override;
+	virtual void Initialize(int32 seedVal) override;
 
 private:
 	float exponent; //better understand how different colored noises work, maybe change this
@@ -64,7 +64,7 @@ class LPerlinNoise : public LNoiseObject
 public:
 	LPerlinNoise();
 	virtual float Noise(float x, float y) override;
-	virtual void Initialize(int32 seed) override;
+	virtual void Initialize(int32 seedVal) override;
 
 private:
 	float DotGrad(int ix, int iy, float x, float y);

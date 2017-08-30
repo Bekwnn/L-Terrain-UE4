@@ -62,36 +62,82 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 		{
 			for (int j = 0; j < ComponentSizeVerts; ++j)
 			{
-				float xPercCoords = (float)(((compIdx % landscapeComponentCountSqrt) * ComponentSizeVerts) + j) / (float)(landscapeComponentCountSqrt * ComponentSizeVerts);
-				float yPercCoords = (float)(((compIdx / landscapeComponentCountSqrt) * ComponentSizeVerts) + i) / (float)(landscapeComponentCountSqrt * ComponentSizeVerts);
+				float xPercCoords = (float)(((compIdx % landscapeComponentCountSqrt) * (ComponentSizeVerts - 1)) + j) / (float)(landscapeComponentCountSqrt * (ComponentSizeVerts - 1));
+				float yPercCoords = (float)(((compIdx / landscapeComponentCountSqrt) * (ComponentSizeVerts - 1)) + i) / (float)(landscapeComponentCountSqrt * (ComponentSizeVerts - 1));
 				float xFloatCoords = xPercCoords * sourceSizeX;
 				float yFloatCoords = yPercCoords * sourceSizeY;
-				int xFloorCoords = FMath::FloorToInt(xFloatCoords-0.5f);
-				int yFloorCoords = FMath::FloorToInt(yFloatCoords-0.5f);
-				
+
 				LPatchPtr curPatch = *(symbolPatchMap.Find(LSystem::GetMapSymbolFrom01Coords(sourceLSymbolMap, xPercCoords, yPercCoords)));
 				allUsedPatches.AddUnique(curPatch);
 
-				//generate height value based on patch settings
+				//get 4 indices of source patches surrounding current vert
+				int xFloorCoords = FMath::Max(FMath::FloorToInt(xFloatCoords - 0.5f), 0);
+				int yFloorCoords = FMath::Max(FMath::FloorToInt(yFloatCoords - 0.5f), 0);
+				int xFloorCoordsp1 = FMath::Min(xFloorCoords + 1, sourceSizeX - 1);
+				int yFloorCoordsp1 = FMath::Min(yFloorCoords + 1, sourceSizeX - 1);
+
+				//generate noise according to our 4 nearby patches
+				float noiseTotalx0y0 = 0.f, noiseTotalx1y0 = 0.f, noiseTotalx0y1 = 0.f, noiseTotalx1y1 = 0.f;
+				float noiseX = ((compIdx % landscapeComponentCountSqrt)*(ComponentSizeVerts - 1) + j)*0.1f;
+				float noiseY = ((compIdx / landscapeComponentCountSqrt)*(ComponentSizeVerts - 1) + i)*0.1f;
+				LPatchPtr patchx0y0 = (*symbolPatchMap.Find((*sourceLSymbolMap)[yFloorCoords][xFloorCoords]));
+				LPatchPtr patchx1y0 = (*symbolPatchMap.Find((*sourceLSymbolMap)[yFloorCoords][xFloorCoordsp1]));
+				LPatchPtr patchx0y1 = (*symbolPatchMap.Find((*sourceLSymbolMap)[yFloorCoordsp1][xFloorCoords]));
+				LPatchPtr patchx1y1 = (*symbolPatchMap.Find((*sourceLSymbolMap)[yFloorCoordsp1][xFloorCoordsp1]));
+
+				//patch x0y0 noise
+				TArray<LNoisePtr>& noiseMapList = patchx0y0->noiseMaps;
+				noiseTotalx0y0 = SumNoiseMaps(noiseMapList, noiseX, noiseY);
+
+				//patch x1y0 noise
+				if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { noiseTotalx1y0 = noiseTotalx0y0; }
+				else
+				{
+					noiseMapList = patchx1y0->noiseMaps;
+					noiseTotalx1y0 = SumNoiseMaps(noiseMapList, noiseX, noiseY);
+				}
+
+				//patch x0y1 noise
+				if (yFloorCoordsp1 == yFloorCoords || patchx0y1 == patchx0y0) { noiseTotalx0y1 = noiseTotalx0y0; }
+				else
+				{
+					noiseMapList = patchx0y1->noiseMaps;
+					noiseTotalx0y1 = SumNoiseMaps(noiseMapList, noiseX, noiseY);
+				}
+
+				//patch x1y1 noise
+				if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { noiseTotalx1y1 = noiseTotalx0y1; }
+				else if (yFloorCoordsp1 == yFloorCoords || patchx0y1 == patchx0y0) { noiseTotalx1y1 = noiseTotalx1y0; }
+				else
+				{
+					noiseMapList = patchx1y1->noiseMaps;
+					noiseTotalx1y1 = SumNoiseMaps(noiseMapList, noiseX, noiseY);
+				}
+
+				//bilerp fractional coordinates
+				//TODO: ease function for bilerpX and bilerpY
+				float bilerpX = FMath::Frac(xFloatCoords + 0.5f);
+				float bilerpY = FMath::Frac(yFloatCoords + 0.5f);
+
+				//generate large scale height value
 				uint16 heightval = (int)FMath::BiLerp(
-					(float)roughHeightmap[FMath::Max(yFloorCoords, 0)               * sourceSizeY + FMath::Max(xFloorCoords, 0)              ],
-					(float)roughHeightmap[FMath::Max(yFloorCoords, 0)               * sourceSizeY + FMath::Min(xFloorCoords+1, sourceSizeX-1)],
-					(float)roughHeightmap[FMath::Min(yFloorCoords+1, sourceSizeY-1) * sourceSizeY + FMath::Max(xFloorCoords, 0)              ],
-					(float)roughHeightmap[FMath::Min(yFloorCoords+1, sourceSizeY-1) * sourceSizeY + FMath::Min(xFloorCoords+1, sourceSizeX-1)],
-					FMath::Frac(xFloatCoords + 0.5f),
-					FMath::Frac(yFloatCoords + 0.5f)
+					(float)roughHeightmap[yFloorCoords   * sourceSizeY + xFloorCoords  ],
+					(float)roughHeightmap[yFloorCoords   * sourceSizeY + xFloorCoordsp1],
+					(float)roughHeightmap[yFloorCoordsp1 * sourceSizeY + xFloorCoords  ],
+					(float)roughHeightmap[yFloorCoordsp1 * sourceSizeY + xFloorCoordsp1],
+					bilerpX,
+					bilerpY
 				);
 
-				for (LNoisePtr noise : curPatch->noiseMaps)
-				{
-					//in a normally scaled landscape a quad is 1x1 meters
-					//a frequency of 1.0f repeats every 10 meters if it's a texture
-					//notes: ComponentSizeVerts-1 because 1 vertex overlaps between each landscape component
-					heightval += metersToU16 * noise->Noise(
-						((compIdx % landscapeComponentCountSqrt)*(ComponentSizeVerts - 1) + j)*0.1f,
-						((compIdx / landscapeComponentCountSqrt)*(ComponentSizeVerts - 1) + i)*0.1f
-						);
-				}
+				//apply noise
+				heightval += (int)(metersToU16 * FMath::BiLerp(
+					noiseTotalx0y0,
+					noiseTotalx1y0,
+					noiseTotalx0y1,
+					noiseTotalx1y1,
+					bilerpX,
+					bilerpY
+				));
 
 				//data stored in RGBA 32 bit format, RG is 16 bit heightmap data
 				hmapdata.Add(FColor(heightval >> 8, heightval & 0xFF, 0));
@@ -167,4 +213,14 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 ULandscapeLayerInfoObject* LTerrainGeneration::CreateLayerInfoAsset(LGroundTexture & layerInfo)
 {
 	return nullptr;
+}
+
+float LTerrainGeneration::SumNoiseMaps(TArray<LNoisePtr>& noiseMaps, float x, float y)
+{
+	float sum = 0.f;
+	for (LNoisePtr noise : noiseMaps)
+	{
+		sum += noise->Noise(x, y);
+	}
+	return sum;
 }
