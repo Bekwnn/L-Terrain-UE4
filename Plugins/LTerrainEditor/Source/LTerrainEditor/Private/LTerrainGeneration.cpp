@@ -48,7 +48,41 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 		}
 	}
 
-	//TODO: smooth rough height map before finer detail step?
+	//smooth rough height map before finer detail step
+	TArray<uint16> smoothHeightMap = roughHeightmap;
+
+	for (int i = 0; i < sourceSizeY; ++i)
+	{
+		for (int j = 0; j < sourceSizeX; ++j)
+		{
+			LPatchPtr curPatch = *symbolPatchMap.Find((*sourceLSymbolMap)[i][j]);
+			if (!curPatch->bHeightMatchNeighbors) continue;
+
+			int avgCount = 0;
+			float avg = roughHeightmap[i*sourceSizeY + j];
+			for (int ii = -1; ii <= 1; ++ii)
+			{
+				if (i + ii < 0 || i + ii >= sourceSizeY) continue;
+
+				for (int jj = -1; jj <= 1; ++jj)
+				{
+					if (j + jj < 0 || j + jj >= sourceSizeX) continue;
+
+					avg += (float)roughHeightmap[(i + ii)*sourceSizeY + (j + jj)];
+					++avgCount;
+				}
+			}
+
+			if (avgCount > 1)
+			{
+				//if we have a useful average, blend towards it
+				smoothHeightMap[i*sourceSizeY + j] = (int)FMath::Lerp(
+					(float)smoothHeightMap[i*sourceSizeY + j],
+					avg / avgCount,
+					0.25f);
+			}
+		}
+	}
 	
 	//goes positive X each +1, then positive Y for a row
 	for (int compIdx = 0; compIdx < landscapeComponentCount; ++compIdx)
@@ -71,10 +105,12 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 				allUsedPatches.AddUnique(curPatch);
 
 				//get 4 indices of source patches surrounding current vert
-				int xFloorCoords = FMath::Max(FMath::FloorToInt(xFloatCoords - 0.5f), 0);
-				int yFloorCoords = FMath::Max(FMath::FloorToInt(yFloatCoords - 0.5f), 0);
-				int xFloorCoordsp1 = FMath::Min(xFloorCoords + 1, sourceSizeX - 1);
-				int yFloorCoordsp1 = FMath::Min(yFloorCoords + 1, sourceSizeX - 1);
+				int xFloorCoords = FMath::FloorToInt(xFloatCoords - 0.5f);
+				int yFloorCoords = FMath::FloorToInt(yFloatCoords - 0.5f);
+				int xFloorCoordsp1 = FMath::Min(xFloorCoords + 1, sourceSizeX-1);
+				int yFloorCoordsp1 = FMath::Min(yFloorCoords + 1, sourceSizeY-1);
+				xFloorCoords = FMath::Max(xFloorCoords, 0);
+				yFloorCoords = FMath::Max(yFloorCoords, 0);
 
 				//generate noise according to our 4 nearby patches
 				float noiseTotalx0y0 = 0.f, noiseTotalx1y0 = 0.f, noiseTotalx0y1 = 0.f, noiseTotalx1y1 = 0.f;
@@ -86,23 +122,23 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 				LPatchPtr patchx1y1 = (*symbolPatchMap.Find((*sourceLSymbolMap)[yFloorCoordsp1][xFloorCoordsp1]));
 
 				//patch x0y0 noise
-				TArray<LNoisePtr>& noiseMapList = patchx0y0->noiseMaps;
-				noiseTotalx0y0 = SumNoiseMaps(noiseMapList, noiseX, noiseY);
+				TArray<LNoisePtr>* noiseMapList = &patchx0y0->noiseMaps;
+				noiseTotalx0y0 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
 
 				//patch x1y0 noise
 				if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { noiseTotalx1y0 = noiseTotalx0y0; }
 				else
 				{
-					noiseMapList = patchx1y0->noiseMaps;
-					noiseTotalx1y0 = SumNoiseMaps(noiseMapList, noiseX, noiseY);
+					noiseMapList = &patchx1y0->noiseMaps;
+					noiseTotalx1y0 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
 				}
 
 				//patch x0y1 noise
 				if (yFloorCoordsp1 == yFloorCoords || patchx0y1 == patchx0y0) { noiseTotalx0y1 = noiseTotalx0y0; }
 				else
 				{
-					noiseMapList = patchx0y1->noiseMaps;
-					noiseTotalx0y1 = SumNoiseMaps(noiseMapList, noiseX, noiseY);
+					noiseMapList = &patchx0y1->noiseMaps;
+					noiseTotalx0y1 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
 				}
 
 				//patch x1y1 noise
@@ -110,21 +146,21 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 				else if (yFloorCoordsp1 == yFloorCoords || patchx0y1 == patchx0y0) { noiseTotalx1y1 = noiseTotalx1y0; }
 				else
 				{
-					noiseMapList = patchx1y1->noiseMaps;
-					noiseTotalx1y1 = SumNoiseMaps(noiseMapList, noiseX, noiseY);
+					noiseMapList = &patchx1y1->noiseMaps;
+					noiseTotalx1y1 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
 				}
 
 				//bilerp fractional coordinates
 				//TODO: ease function for bilerpX and bilerpY
-				float bilerpX = FMath::Frac(xFloatCoords + 0.5f);
-				float bilerpY = FMath::Frac(yFloatCoords + 0.5f);
+				float bilerpX = BilerpEase(FMath::Frac(xFloatCoords + 0.5f));
+				float bilerpY = BilerpEase(FMath::Frac(yFloatCoords + 0.5f));
 
 				//generate large scale height value
 				uint16 heightval = (int)FMath::BiLerp(
-					(float)roughHeightmap[yFloorCoords   * sourceSizeY + xFloorCoords  ],
-					(float)roughHeightmap[yFloorCoords   * sourceSizeY + xFloorCoordsp1],
-					(float)roughHeightmap[yFloorCoordsp1 * sourceSizeY + xFloorCoords  ],
-					(float)roughHeightmap[yFloorCoordsp1 * sourceSizeY + xFloorCoordsp1],
+					(float)roughHeightmap[yFloorCoords   * sourceSizeX + xFloorCoords  ],
+					(float)roughHeightmap[yFloorCoords   * sourceSizeX + xFloorCoordsp1],
+					(float)roughHeightmap[yFloorCoordsp1 * sourceSizeX + xFloorCoords  ],
+					(float)roughHeightmap[yFloorCoordsp1 * sourceSizeX + xFloorCoordsp1],
 					bilerpX,
 					bilerpY
 				);
@@ -148,6 +184,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 		landscapeComponent->InitHeightmapData(hmapdata, true);
 	}
 	
+	/*
 	int layerCount = 0;
 	TArray<ULandscapeLayerInfoObject*> layerInfos = TArray<ULandscapeLayerInfoObject*>();
 	TMap<LPatchPtr, int> patchToStartLayer = TMap<LPatchPtr, int>();
@@ -198,6 +235,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 			//landscapeComponent->InitWeightmapData(layerInfos, weightData);
 		}
 	}
+	*/
 
 	///UPDATE TERRAIN START
 	for (ULandscapeComponent* landscapeComponent : terrain->LandscapeComponents)
@@ -223,4 +261,11 @@ float LTerrainGeneration::SumNoiseMaps(TArray<LNoisePtr>& noiseMaps, float x, fl
 		sum += noise->Noise(x, y);
 	}
 	return sum;
+}
+
+//takes a linear t and returns an ease function t
+float LTerrainGeneration::BilerpEase(float t)
+{
+	//going to use same ease function as perlin noise for now
+	return t * t * t * (t * (t * 6 - 15) + 10);
 }

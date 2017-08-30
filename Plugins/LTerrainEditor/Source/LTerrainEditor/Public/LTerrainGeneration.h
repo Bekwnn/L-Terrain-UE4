@@ -10,4 +10,5 @@ public:
 private:
 	static ULandscapeLayerInfoObject* CreateLayerInfoAsset(LGroundTexture& layerInfo);
 	static float SumNoiseMaps(TArray<LNoisePtr>& noiseMaps, float x, float y);
+	static float BilerpEase(float t);
 };

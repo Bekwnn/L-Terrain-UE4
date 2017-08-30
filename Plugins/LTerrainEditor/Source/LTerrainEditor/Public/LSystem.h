@@ -100,6 +100,7 @@ public:
 	LSymbolPtr matchVal;
 	float minHeight;
 	float maxHeight;
+	bool bHeightMatchNeighbors;
 	TArray<TSharedPtr<LNoise>> noiseMaps;
 	TArray<TSharedPtr<LGroundTexture>> groundTextures; //first entry should be used as base
 	TArray<TSharedPtr<LObjectScatter>> objectScatters;

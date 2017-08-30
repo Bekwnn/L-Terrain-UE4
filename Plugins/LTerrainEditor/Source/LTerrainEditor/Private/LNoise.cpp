@@ -88,7 +88,7 @@ float LPerlinNoise::Noise(float x, float y)
 
 void LPerlinNoise::Initialize(int32 seedVal)
 {
-	this->seed = seed;
+	this->seed = seedVal;
 }
 
 float LPerlinNoise::DotGrad(int ix, int iy, float x, float y)
