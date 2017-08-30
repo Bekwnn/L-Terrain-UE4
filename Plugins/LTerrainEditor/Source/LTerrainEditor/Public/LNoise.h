@@ -26,7 +26,7 @@ public:
 	float Noise(float x, float y);
 
 private:
-	void InitNoise(int32 seed);
+	void InitNoise(int32 seedVal);
 
 public:
 	float frequency; //working on a scale where 10 meters is one 1.0 frequency
