@@ -56,7 +56,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 		for (int j = 0; j < sourceSizeX; ++j)
 		{
 			LPatchPtr curPatch = *symbolPatchMap.Find((*sourceLSymbolMap)[i][j]);
-			if (!curPatch->bHeightMatchNeighbors) continue;
+			if (!curPatch->bHeightMatch) continue;
 
 			int avgCount = 0;
 			float avg = roughHeightmap[i*sourceSizeY + j];
@@ -79,7 +79,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 				smoothHeightMap[i*sourceSizeY + j] = (int)FMath::Lerp(
 					(float)smoothHeightMap[i*sourceSizeY + j],
 					avg / avgCount,
-					0.25f);
+					curPatch->heightSmoothFactor);
 			}
 		}
 	}

@@ -235,6 +235,63 @@ void SLPatchView::Reconstruct(LPatchPtr item)
 			.AutoWidth()
 			.Padding(2)
 			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("SmoothNeighbors", "Smooth Height to Neighbors"))
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(SCheckBox)
+				.IsChecked_Lambda([item]()->ECheckBoxState {
+					return (item->bHeightMatch)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+				})
+				.OnCheckStateChanged_Lambda([item](ECheckBoxState checkstate) {
+					item->bHeightMatch = (checkstate == ECheckBoxState::Checked);
+				})
+			]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(STextBlock)
+				.IsEnabled_Lambda([item]()->bool {
+					return item->bHeightMatch;
+				})
+				.Text(LOCTEXT("SmoothNeighborsFactor", " Smoothing Strength:"))
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(SSpinBox<float>)
+				.IsEnabled_Lambda([item]()->bool {
+					return item->bHeightMatch;
+				})
+				.MinValue(0.f)
+				.MaxValue(1.f)
+				.MinDesiredWidth(80.f)
+				.Value_Lambda([item]()->float {
+					return item->heightSmoothFactor;
+				})
+				.OnValueChanged_Lambda([item](float val) {
+					item->heightSmoothFactor = val;
+				})
+			]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
 				SNew(SVerticalBox)
 				+ SVerticalBox::Slot()
 				.Padding(2)

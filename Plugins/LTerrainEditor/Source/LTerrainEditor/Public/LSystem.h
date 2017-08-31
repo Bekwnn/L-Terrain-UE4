@@ -91,6 +91,8 @@ public:
 		matchVal = LSymbolPtr();
 		minHeight = 0.f;
 		maxHeight = 0.f;
+		bHeightMatch = true;
+		heightSmoothFactor = 0.5f;
 		noiseMaps = TArray<TSharedPtr<LNoise>>();
 		groundTextures = TArray<TSharedPtr<LGroundTexture>>();
 		objectScatters = TArray<TSharedPtr<LObjectScatter>>();
@@ -100,7 +102,8 @@ public:
 	LSymbolPtr matchVal;
 	float minHeight;
 	float maxHeight;
-	bool bHeightMatchNeighbors;
+	bool bHeightMatch;
+	float heightSmoothFactor;
 	TArray<TSharedPtr<LNoise>> noiseMaps;
 	TArray<TSharedPtr<LGroundTexture>> groundTextures; //first entry should be used as base
 	TArray<TSharedPtr<LObjectScatter>> objectScatters;
