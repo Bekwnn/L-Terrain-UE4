@@ -125,6 +125,20 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 				TArray<LNoisePtr>* noiseMapList = &patchx0y0->noiseMaps;
 				noiseTotalx0y0 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
 
+				/* TODO: figure out why the x1y1 optimization causes buggy seams
+				//patch x1y0 noise
+				noiseMapList = &patchx1y0->noiseMaps;
+				noiseTotalx1y0 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
+
+				//patch x0y1 noise
+				noiseMapList = &patchx0y1->noiseMaps;
+				noiseTotalx0y1 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
+				*/
+				//patch x1y1 noise
+				noiseMapList = &patchx1y1->noiseMaps;
+				noiseTotalx1y1 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
+
+				
 				//patch x1y0 noise
 				if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { noiseTotalx1y0 = noiseTotalx0y0; }
 				else
@@ -140,7 +154,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 					noiseMapList = &patchx0y1->noiseMaps;
 					noiseTotalx0y1 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
 				}
-
+				/*
 				//patch x1y1 noise
 				if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { noiseTotalx1y1 = noiseTotalx0y1; }
 				else if (yFloorCoordsp1 == yFloorCoords || patchx0y1 == patchx0y0) { noiseTotalx1y1 = noiseTotalx1y0; }
@@ -149,11 +163,11 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 					noiseMapList = &patchx1y1->noiseMaps;
 					noiseTotalx1y1 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
 				}
+				*/
 
 				//bilerp fractional coordinates
-				//TODO: ease function for bilerpX and bilerpY
-				float bilerpX = BilerpEase(FMath::Frac(xFloatCoords + 0.5f));
-				float bilerpY = BilerpEase(FMath::Frac(yFloatCoords + 0.5f));
+				float bilerpX = BilerpEase(FMath::Frac(xFloatCoords+0.5f));
+				float bilerpY = BilerpEase(FMath::Frac(yFloatCoords+0.5f));
 
 				//generate large scale height value
 				uint16 heightval = (int)FMath::BiLerp(
