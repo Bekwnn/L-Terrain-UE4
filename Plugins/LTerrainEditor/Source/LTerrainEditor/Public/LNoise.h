@@ -10,7 +10,7 @@ typedef TSharedPtr<LNoise> LNoisePtr;
 enum class ENoiseType : uint8
 {
 	WHITE,
-	RED,
+	PINK,
 	BLUE,
 	PERLIN,
 };
@@ -45,7 +45,6 @@ public:
 
 protected:
 	int32 seed;
-	std::default_random_engine generator;
 };
 
 class LColoredNoise : public LNoiseObject
@@ -56,7 +55,16 @@ public:
 	virtual void Initialize(int32 seedVal) override;
 
 private:
-	float exponent; //better understand how different colored noises work, maybe change this
+	//-1 exponent: favors low frequencies
+	// 0 exponent: even weighted frequencies
+	//+1 exponent: favors high frequencies
+	float exponent;
+	std::default_random_engine generatorX;
+	std::default_random_engine generatorY;
+	std::uniform_real_distribution<float> tauShiftDistribution;
+	std::uniform_int_distribution<int> generate2ndSeed;
+	static float TAU;
+	int32 seed2;
 };
 
 class LPerlinNoise : public LNoiseObject
@@ -72,4 +80,5 @@ private:
 
 private:
 	std::uniform_real_distribution<float> gradVecRotDistribution;
+	std::default_random_engine generator;
 };

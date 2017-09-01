@@ -125,19 +125,6 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 				TArray<LNoisePtr>* noiseMapList = &patchx0y0->noiseMaps;
 				noiseTotalx0y0 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
 
-				/* TODO: figure out why the x1y1 optimization causes buggy seams
-				//patch x1y0 noise
-				noiseMapList = &patchx1y0->noiseMaps;
-				noiseTotalx1y0 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
-
-				//patch x0y1 noise
-				noiseMapList = &patchx0y1->noiseMaps;
-				noiseTotalx0y1 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
-				*/
-				//patch x1y1 noise
-				noiseMapList = &patchx1y1->noiseMaps;
-				noiseTotalx1y1 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
-
 				
 				//patch x1y0 noise
 				if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { noiseTotalx1y0 = noiseTotalx0y0; }
@@ -154,16 +141,14 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 					noiseMapList = &patchx0y1->noiseMaps;
 					noiseTotalx0y1 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
 				}
-				/*
 				//patch x1y1 noise
-				if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { noiseTotalx1y1 = noiseTotalx0y1; }
-				else if (yFloorCoordsp1 == yFloorCoords || patchx0y1 == patchx0y0) { noiseTotalx1y1 = noiseTotalx1y0; }
+				if (xFloorCoordsp1 == xFloorCoords || patchx0y1 == patchx1y1) { noiseTotalx1y1 = noiseTotalx0y1; }
+				else if (yFloorCoordsp1 == yFloorCoords || patchx1y0 == patchx1y1) { noiseTotalx1y1 = noiseTotalx1y0; }
 				else
 				{
 					noiseMapList = &patchx1y1->noiseMaps;
 					noiseTotalx1y1 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
 				}
-				*/
 
 				//bilerp fractional coordinates
 				float bilerpX = BilerpEase(FMath::Frac(xFloatCoords+0.5f));
@@ -198,7 +183,6 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 		landscapeComponent->InitHeightmapData(hmapdata, true);
 	}
 	
-	/*
 	int layerCount = 0;
 	TArray<ULandscapeLayerInfoObject*> layerInfos = TArray<ULandscapeLayerInfoObject*>();
 	TMap<LPatchPtr, int> patchToStartLayer = TMap<LPatchPtr, int>();
@@ -249,7 +233,6 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 			//landscapeComponent->InitWeightmapData(layerInfos, weightData);
 		}
 	}
-	*/
 
 	///UPDATE TERRAIN START
 	for (ULandscapeComponent* landscapeComponent : terrain->LandscapeComponents)

@@ -451,7 +451,7 @@ TSharedRef<ITableRow> SLPatchView::GenerateNoiseListRow(LNoisePtr item, const TS
 	case ENoiseType::WHITE:
 		itemName += "White Noise";
 		break;
-	case ENoiseType::RED:
+	case ENoiseType::PINK:
 		itemName += "Red Noise";
 		break;
 	case ENoiseType::BLUE:
@@ -564,7 +564,7 @@ void SLPatchView::ScatterSelectionChanged(LObjectScatterPtr item, ESelectInfo::T
 //used as text fields for enum selection
 TArray<TSharedPtr<FString>> SLNoiseView::noiseNames = {
 	TSharedPtr<FString>(new FString("White Noise")),
-	TSharedPtr<FString>(new FString("Red Noise")),
+	TSharedPtr<FString>(new FString("Pink Noise")),
 	TSharedPtr<FString>(new FString("Blue Noise")),
 	TSharedPtr<FString>(new FString("Perlin Noise"))
 };

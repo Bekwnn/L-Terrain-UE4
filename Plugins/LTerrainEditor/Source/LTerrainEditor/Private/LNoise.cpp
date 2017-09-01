@@ -43,8 +43,8 @@ void LNoise::InitNoise(int32 seedVal)
 	case ENoiseType::WHITE:
 		noiseObject = TSharedPtr<LNoiseObject>(new LColoredNoise(0.f));
 		break;
-	case ENoiseType::RED:
-		noiseObject = TSharedPtr<LNoiseObject>(new LColoredNoise(-2.f));
+	case ENoiseType::PINK:
+		noiseObject = TSharedPtr<LNoiseObject>(new LColoredNoise(-1.f));
 		break;
 	case ENoiseType::BLUE:
 		noiseObject = TSharedPtr<LNoiseObject>(new LColoredNoise(1.f));
@@ -110,17 +110,49 @@ float LPerlinNoise::EaseFunction(float t)
 	return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
+float LColoredNoise::TAU = 2.f*PI;
+
 LColoredNoise::LColoredNoise(float exponent)
 {
 	this->exponent = exponent;
+	tauShiftDistribution = std::uniform_real_distribution<float>(0.f, TAU);
+	generate2ndSeed = std::uniform_int_distribution<int>(INT32_MIN, INT32_MAX);
 }
 
 float LColoredNoise::Noise(float x, float y)
 {
-	return 0.5f; //TODO: does nothing
+
+	generatorX.seed(seed + y);
+	generatorY.seed(seed2 + x);
+	TArray<float> values = TArray<float>();
+	TArray<float> weights = TArray<float>();
+	float sumWeights = 0.f;
+	for (int freq = 1; freq < 31; ++freq)
+	{
+		//will always generate the same 60 number shift sequence since we seed at start
+		float shiftX = tauShiftDistribution(generatorX);
+		float shiftY = tauShiftDistribution(generatorY);
+
+		values.Add(FMath::Sin((TAU*x + shiftX)*freq) + FMath::Sin((TAU*y + shiftY)*freq));
+
+		float weight = FMath::Pow(freq, exponent);
+		sumWeights += weight;
+		weights.Add(weight);
+	}
+
+	float weightedValue = 0.f;
+	for (int i = 0; i < values.Num(); ++i)
+	{
+		weightedValue += values[i] * (weights[i] / sumWeights);
+	}
+
+	return weightedValue;
 }
 
 void LColoredNoise::Initialize(int32 seedVal)
 {
 	this->seed = seedVal;
+	//generate 2nd seed
+	generatorX.seed(seedVal);
+	this->seed2 = generate2ndSeed(generatorX);
 }
