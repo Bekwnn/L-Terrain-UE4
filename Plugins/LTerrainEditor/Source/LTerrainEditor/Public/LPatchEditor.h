@@ -48,8 +48,8 @@ public:
 
 	FReply OnGroundTexAdded();
 	FReply OnGroundTexRemoved();
-	TSharedRef<ITableRow> GenerateGroundTexListRow(LGroundTexturePtr item, const TSharedRef<STableViewBase> &ownerTable);
-	void GroundTexSelectionChanged(LGroundTexturePtr item, ESelectInfo::Type selectType);
+	TSharedRef<ITableRow> GenerateGroundTexListRow(LPaintWeightPtr item, const TSharedRef<STableViewBase> &ownerTable);
+	void GroundTexSelectionChanged(LPaintWeightPtr item, ESelectInfo::Type selectType);
 
 	FReply OnScatterAdded();
 	FReply OnScatterRemoved();
@@ -62,7 +62,7 @@ private:
 	TSharedPtr<SListView<LNoisePtr>> noiseListWidget;
 	TSharedPtr<SLNoiseView> noiseView;
 
-	TSharedPtr<SListView<LGroundTexturePtr>> groundTexListWidget;
+	TSharedPtr<SListView<LPaintWeightPtr>> groundTexListWidget;
 	TSharedPtr<SLGroundTexView> groundTexView;
 
 	TSharedPtr<SListView<LObjectScatterPtr>> scatterListWidget;
@@ -89,11 +89,11 @@ class SLGroundTexView : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SLGroundTexView) {}
-	SLATE_ARGUMENT(LGroundTexturePtr, GroundTexture)
+	SLATE_ARGUMENT(LPaintWeightPtr, GroundTexture)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& args);
-	void Reconstruct(LGroundTexturePtr item);
+	void Reconstruct(LPaintWeightPtr item);
 };
 
 class SLScatterView : public SCompoundWidget

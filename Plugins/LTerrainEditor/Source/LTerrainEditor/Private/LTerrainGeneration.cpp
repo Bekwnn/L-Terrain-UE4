@@ -5,6 +5,8 @@
 #include "Landscape.h"
 #include "LandscapeInfo.h"
 
+#define LOCTEXT_NAMESPACE "FLTerrainEditorModule"
+
 void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 {
 	int landscapeComponentCount = terrain->LandscapeComponents.Num();
@@ -31,9 +33,14 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 	//after heightmap pass, contains a list of unique patches used in the landscape
 	TArray<LPatchPtr> allUsedPatches = TArray<LPatchPtr>();
 
-	///INITIAL ROUGH HEIGHTMAP
+	//initial rough heightmap
 	TArray<uint16> roughHeightmap = TArray<uint16>();
 	roughHeightmap.Reserve(sourceSizeX*sourceSizeY);
+
+	//painting layer data
+	int layerCount = lSystem.groundTextures.Num();
+	TArray<ULandscapeLayerInfoObject*> layerInfos = TArray<ULandscapeLayerInfoObject*>();
+	layerInfos.Init(nullptr, layerCount);
 
 	//some constants to be used in generation
 	float metersToU16 = (UINT16_MAX / 2) / 256.f;
@@ -49,7 +56,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 	}
 
 	//smooth rough height map before finer detail step
-	TArray<uint16> smoothHeightMap = roughHeightmap;
+	TArray<uint16> smoothedHeightMap = roughHeightmap;
 
 	for (int i = 0; i < sourceSizeY; ++i)
 	{
@@ -58,7 +65,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 			LPatchPtr curPatch = *symbolPatchMap.Find((*sourceLSymbolMap)[i][j]);
 			if (!curPatch->bHeightMatch) continue;
 
-			int avgCount = 0;
+			int avgCount = 1;
 			float avg = roughHeightmap[i*sourceSizeY + j];
 			for (int ii = -1; ii <= 1; ++ii)
 			{
@@ -76,22 +83,38 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 			if (avgCount > 1)
 			{
 				//if we have a useful average, blend towards it
-				smoothHeightMap[i*sourceSizeY + j] = (int)FMath::Lerp(
-					(float)smoothHeightMap[i*sourceSizeY + j],
+				smoothedHeightMap[i*sourceSizeY + j] = (int)FMath::Lerp(
+					(float)smoothedHeightMap[i*sourceSizeY + j],
 					avg / avgCount,
 					curPatch->heightSmoothFactor);
 			}
 		}
 	}
+
+	FScopedSlowTask loadingBar(landscapeComponentCount+1, LOCTEXT("InitializeText", "Initializing Landscape Data"));
+	loadingBar.MakeDialog();
+	loadingBar.EnterProgressFrame();
 	
 	//goes positive X each +1, then positive Y for a row
 	for (int compIdx = 0; compIdx < landscapeComponentCount; ++compIdx)
 	{
+		loadingBar.EnterProgressFrame();
+
 		ULandscapeComponent* landscapeComponent = terrain->LandscapeComponents[compIdx];
 
+		//init height data
 		TArray<FColor> hmapdata = TArray<FColor>();
 		hmapdata.Reserve(FMath::Square(ComponentSizeVerts));
 
+		//init weight data to 0
+		TArray<TArray<uint8>> weightData = TArray<TArray<uint8>>(); //stored as [layer][datapos]
+		weightData.Init(TArray<uint8>(), layerCount);
+		for (int i = 0; i < layerCount; ++i)
+		{
+			weightData[i].Init(0, FMath::Square(ComponentSizeVerts));
+		}
+
+		///BEGIN MAIN LOOP
 		for (int i = 0; i < ComponentSizeVerts; ++i)
 		{
 			for (int j = 0; j < ComponentSizeVerts; ++j)
@@ -112,6 +135,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 				xFloorCoords = FMath::Max(xFloorCoords, 0);
 				yFloorCoords = FMath::Max(yFloorCoords, 0);
 
+				///HEIGHT MAP STEPS
 				//generate noise according to our 4 nearby patches
 				float noiseTotalx0y0 = 0.f, noiseTotalx1y0 = 0.f, noiseTotalx0y1 = 0.f, noiseTotalx1y1 = 0.f;
 				float noiseX = ((compIdx % landscapeComponentCountSqrt)*(ComponentSizeVerts - 1) + j)*0.1f;
@@ -122,33 +146,20 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 				LPatchPtr patchx1y1 = (*symbolPatchMap.Find((*sourceLSymbolMap)[yFloorCoordsp1][xFloorCoordsp1]));
 
 				//patch x0y0 noise
-				TArray<LNoisePtr>* noiseMapList = &patchx0y0->noiseMaps;
-				noiseTotalx0y0 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
-
+				noiseTotalx0y0 = SumNoiseMaps(patchx0y0->noiseMaps, noiseX, noiseY);
 				
 				//patch x1y0 noise
 				if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { noiseTotalx1y0 = noiseTotalx0y0; }
-				else
-				{
-					noiseMapList = &patchx1y0->noiseMaps;
-					noiseTotalx1y0 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
-				}
+				else { noiseTotalx1y0 = SumNoiseMaps(patchx1y0->noiseMaps, noiseX, noiseY); }
 
 				//patch x0y1 noise
 				if (yFloorCoordsp1 == yFloorCoords || patchx0y1 == patchx0y0) { noiseTotalx0y1 = noiseTotalx0y0; }
-				else
-				{
-					noiseMapList = &patchx0y1->noiseMaps;
-					noiseTotalx0y1 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
-				}
+				else { noiseTotalx0y1 = SumNoiseMaps(patchx0y1->noiseMaps, noiseX, noiseY); }
+
 				//patch x1y1 noise
 				if (xFloorCoordsp1 == xFloorCoords || patchx0y1 == patchx1y1) { noiseTotalx1y1 = noiseTotalx0y1; }
 				else if (yFloorCoordsp1 == yFloorCoords || patchx1y0 == patchx1y1) { noiseTotalx1y1 = noiseTotalx1y0; }
-				else
-				{
-					noiseMapList = &patchx1y1->noiseMaps;
-					noiseTotalx1y1 = SumNoiseMaps(*noiseMapList, noiseX, noiseY);
-				}
+				else { noiseTotalx1y1 = SumNoiseMaps(patchx1y1->noiseMaps, noiseX, noiseY); }
 
 				//bilerp fractional coordinates
 				float bilerpX = BilerpEase(FMath::Frac(xFloatCoords+0.5f));
@@ -156,10 +167,10 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 
 				//generate large scale height value
 				uint16 heightval = (int)FMath::BiLerp(
-					(float)roughHeightmap[yFloorCoords   * sourceSizeX + xFloorCoords  ],
-					(float)roughHeightmap[yFloorCoords   * sourceSizeX + xFloorCoordsp1],
-					(float)roughHeightmap[yFloorCoordsp1 * sourceSizeX + xFloorCoords  ],
-					(float)roughHeightmap[yFloorCoordsp1 * sourceSizeX + xFloorCoordsp1],
+					(float)smoothedHeightMap[yFloorCoords   * sourceSizeX + xFloorCoords  ],
+					(float)smoothedHeightMap[yFloorCoords   * sourceSizeX + xFloorCoordsp1],
+					(float)smoothedHeightMap[yFloorCoordsp1 * sourceSizeX + xFloorCoords  ],
+					(float)smoothedHeightMap[yFloorCoordsp1 * sourceSizeX + xFloorCoordsp1],
 					bilerpX,
 					bilerpY
 				);
@@ -176,62 +187,50 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 
 				//data stored in RGBA 32 bit format, RG is 16 bit heightmap data
 				hmapdata.Add(FColor(heightval >> 8, heightval & 0xFF, 0));
-			}
-		}
 
-		//TODO, parse hmapdata and post process it
-		landscapeComponent->InitHeightmapData(hmapdata, true);
-	}
-	
-	int layerCount = 0;
-	TArray<ULandscapeLayerInfoObject*> layerInfos = TArray<ULandscapeLayerInfoObject*>();
-	TMap<LPatchPtr, int> patchToStartLayer = TMap<LPatchPtr, int>();
-	for (LPatchPtr patch : allUsedPatches)
-	{
-		patchToStartLayer.Add(patch, layerCount);
-		for (LGroundTexturePtr tex : patch->groundTextures)
-		{
-			//TODO: create layerinfo using tex data
-			layerInfos.Add(nullptr);
-			++layerCount;
-		}
-	}
-
-	if (layerCount != 0)
-	{
-		for (int compIdx = 0; compIdx < landscapeComponentCount; ++compIdx)
-		{
-			ULandscapeComponent* landscapeComponent = terrain->LandscapeComponents[compIdx];
-
-			TArray<TArray<uint8>> weightData = TArray<TArray<uint8>>(); //stored as [layer][datapos]
-
-			//init weight data to 0
-			weightData.Init(TArray<uint8>(), layerCount);
-			for (int i = 0; i < layerCount; ++i)
-			{
-				weightData[i].Init(0, FMath::Square(ComponentSizeVerts));
-			}
-
-			for (int i = 0; i < ComponentSizeVerts; ++i)
-			{
-				for (int j = 0; j < ComponentSizeVerts; ++j)
+				///PAINT MAP STEPS
+				if (layerCount != 0)
 				{
-					float xPercCoords = (float)(((compIdx % landscapeComponentCountSqrt) * ComponentSizeVerts) + j) / (float)(landscapeComponentCountSqrt * ComponentSizeVerts);
-					float yPercCoords = (float)(((compIdx / landscapeComponentCountSqrt) * ComponentSizeVerts) + i) / (float)(landscapeComponentCountSqrt * ComponentSizeVerts);
+					TArray<float> weightsx0y0, weightsx1y0, weightsx0y1, weightsx1y1;
+					TArray<int> idxsTouched;
 
-					LPatchPtr curPatch = *(symbolPatchMap.Find(LSystem::GetMapSymbolFrom01Coords(sourceLSymbolMap, xPercCoords, yPercCoords)));
+					//patch x0y0 weights
+					GetWeightMapsAt(lSystem, patchx0y0->paintWeights, noiseX, noiseY, weightsx0y0, idxsTouched);
 
-					int patchIdxStart = *patchToStartLayer.Find(curPatch);
-					for (int texIdx = 0; texIdx < curPatch->groundTextures.Num(); ++texIdx)
+					//patch x1y0 weights
+					if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { weightsx1y0 = weightsx0y0; }
+					else { GetWeightMapsAt(lSystem, patchx1y0->paintWeights, noiseX, noiseY, weightsx1y0, idxsTouched); }
+
+					//patch x0y1 weights
+					if (yFloorCoordsp1 == yFloorCoords || patchx0y1 == patchx0y0) { weightsx0y1 = weightsx0y0; }
+					else { GetWeightMapsAt(lSystem, patchx0y1->paintWeights, noiseX, noiseY, weightsx0y1, idxsTouched); }
+
+					//patch x1y1 weights
+					if (xFloorCoordsp1 == xFloorCoords || patchx0y1 == patchx1y1) { weightsx1y1 = weightsx0y1; }
+					else if (yFloorCoordsp1 == yFloorCoords || patchx1y0 == patchx1y1) { weightsx1y1 = weightsx1y0; }
+					else { GetWeightMapsAt(lSystem, patchx1y1->paintWeights, noiseX, noiseY, weightsx1y1, idxsTouched); }
+
+					for (int idx : idxsTouched)
 					{
-						//TODO: generate paint weights (how does ue4 handle weights?)
-						weightData[patchIdxStart + texIdx][i*ComponentSizeVerts + j] = 64; //0.25 weight for now
+						weightData[idx][i*ComponentSizeVerts + j] = FMath::Clamp<uint8>(
+							FMath::BiLerp(
+								weightsx0y0[idx], weightsx1y0[idx],
+								weightsx0y1[idx], weightsx1y1[idx],
+								bilerpX,
+								bilerpY
+							) * 255,
+							0,
+							255);
 					}
 				}
 			}
-
-			//landscapeComponent->InitWeightmapData(layerInfos, weightData);
 		}
+
+		//APPLY DATA
+		landscapeComponent->InitHeightmapData(hmapdata, true);
+
+		if (layerCount != 0)
+			landscapeComponent->InitWeightmapData(layerInfos, weightData);
 	}
 
 	///UPDATE TERRAIN START
@@ -244,8 +243,9 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 	}
 	///UPDATE TERRAIN END
 }
+#undef LOCTEXT_NAMESPACE
 
-ULandscapeLayerInfoObject* LTerrainGeneration::CreateLayerInfoAsset(LGroundTexture & layerInfo)
+ULandscapeLayerInfoObject* LTerrainGeneration::CreateLayerInfoAsset(LPaintWeight & layerInfo)
 {
 	return nullptr;
 }
@@ -265,4 +265,25 @@ float LTerrainGeneration::BilerpEase(float t)
 {
 	//going to use same ease function as perlin noise for now
 	return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+//passes idxsTouched to track which textures are used so we can ultimately reduce the amount of paint layers we bilerp
+void LTerrainGeneration::GetWeightMapsAt(LSystem& lsystem, TArray<LPaintWeightPtr>& patchPaints, float x, float y, TArray<float>& outWeights, TArray<int>& idxsTouched)
+{
+	outWeights.Init(0.f, lsystem.groundTextures.Num());
+
+	for (LPaintWeightPtr paintWeight : patchPaints)
+	{
+		if (!paintWeight->texture.IsValid()) continue;
+
+		int idx = lsystem.groundTextures.Find(paintWeight->texture);
+		idxsTouched.AddUnique(idx);
+
+		float noiseVal = paintWeight->noiseMap->Noise(x, y);
+		float halfFeather = paintWeight->thresholdFeather / 2;
+		float alpha = FMath::Clamp((noiseVal - (paintWeight->threshold + halfFeather)) / paintWeight->thresholdFeather, 0.f, 1.f);
+		float weight = FMath::Lerp(0.f, 1.f, alpha);
+
+		outWeights[idx] = weight;
+	}
 }

@@ -6,12 +6,14 @@ class LPatch;
 class LRule;
 class LSymbol;
 class LGroundTexture;
+class LPaintWeight;
 class LObjectScatter;
 
 typedef TSharedPtr<LSymbol> LSymbolPtr;
 typedef TSharedPtr<LRule> LRulePtr;
 typedef TSharedPtr<LPatch> LPatchPtr;
 typedef TSharedPtr<LGroundTexture> LGroundTexturePtr;
+typedef TSharedPtr<LPaintWeight> LPaintWeightPtr;
 typedef TSharedPtr<LObjectScatter> LObjectScatterPtr;
 typedef TArray<TArray<TSharedPtr<LSymbol>>> LSymbol2DMap;
 typedef TSharedPtr<LSymbol2DMap> LSymbol2DMapPtr;
@@ -32,6 +34,7 @@ public:
 	TArray<LSymbolPtr> symbols;
 	TArray<LPatchPtr> patches;
 	TArray<LSymbol2DMapPtr> lSystemLoDs;
+	TArray<LGroundTexturePtr> groundTextures;
 
 	static const int DIMS = 5;
 };
@@ -94,7 +97,7 @@ public:
 		bHeightMatch = true;
 		heightSmoothFactor = 0.5f;
 		noiseMaps = TArray<TSharedPtr<LNoise>>();
-		groundTextures = TArray<TSharedPtr<LGroundTexture>>();
+		paintWeights = TArray<TSharedPtr<LPaintWeight>>();
 		objectScatters = TArray<TSharedPtr<LObjectScatter>>();
 	}
 
@@ -104,9 +107,9 @@ public:
 	float maxHeight;
 	bool bHeightMatch;
 	float heightSmoothFactor;
-	TArray<TSharedPtr<LNoise>> noiseMaps;
-	TArray<TSharedPtr<LGroundTexture>> groundTextures; //first entry should be used as base
-	TArray<TSharedPtr<LObjectScatter>> objectScatters;
+	TArray<LNoisePtr> noiseMaps;
+	TArray<LPaintWeightPtr> paintWeights; //first entry should be used as base
+	TArray<LObjectScatterPtr> objectScatters;
 };
 
 class LObjectScatter
@@ -124,5 +127,16 @@ class LGroundTexture
 public:
 	FString name;
 	FAssetData texture;
-	//TODO distribution, noise etc
+	FAssetData normalMap;
+};
+
+class LPaintWeight
+{
+public:
+	LGroundTexturePtr texture;
+	float weight;
+	LNoisePtr noiseMap;
+	bool bUseAboveThreshold;
+	float threshold;
+	float thresholdFeather;
 };

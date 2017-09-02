@@ -340,8 +340,8 @@ void SLPatchView::Reconstruct(LPatchPtr item)
 				.Padding(2)
 				.FillHeight(1)
 				[
-					SAssignNew(groundTexListWidget, SListView<LGroundTexturePtr>)
-					.ListItemsSource(&item->groundTextures)
+					SAssignNew(groundTexListWidget, SListView<LPaintWeightPtr>)
+					.ListItemsSource(&item->paintWeights)
 					.OnGenerateRow(this, &SLPatchView::GenerateGroundTexListRow)
 					.OnSelectionChanged(this, &SLPatchView::GroundTexSelectionChanged)
 					.SelectionMode(ESelectionMode::Single)
@@ -418,7 +418,7 @@ void SLPatchView::Reconstruct(LPatchPtr item)
 
 FReply SLPatchView::OnNoiseAdded()
 {
-	LNoisePtr newNoise = LNoisePtr(new LNoise(ENoiseType::WHITE));
+	LNoisePtr newNoise = LNoisePtr(new LNoise(ENoiseType::PERLIN));
 	newNoise->frequency = 1.f;
 	newNoise->amplitude = 2.f;
 	patch->noiseMaps.Add(newNoise);
@@ -481,9 +481,8 @@ void SLPatchView::NoiseSelectionChanged(LNoisePtr item, ESelectInfo::Type select
 
 FReply SLPatchView::OnGroundTexAdded()
 {
-	LGroundTexturePtr newGroundTex = LGroundTexturePtr(new LGroundTexture());
-	newGroundTex->name = "New Ground Texture";
-	patch->groundTextures.Add(newGroundTex);
+	LPaintWeightPtr newGroundTex = LPaintWeightPtr(new LPaintWeight());
+	patch->paintWeights.Add(newGroundTex);
 
 	groundTexListWidget->SetSelection(newGroundTex);
 	groundTexListWidget->RequestListRefresh();
@@ -493,10 +492,10 @@ FReply SLPatchView::OnGroundTexAdded()
 
 FReply SLPatchView::OnGroundTexRemoved()
 {
-	TArray<LGroundTexturePtr> selectedItems = groundTexListWidget->GetSelectedItems();
-	for (LGroundTexturePtr item : selectedItems)
+	TArray<LPaintWeightPtr> selectedItems = groundTexListWidget->GetSelectedItems();
+	for (LPaintWeightPtr item : selectedItems)
 	{
-		patch->groundTextures.Remove(item);
+		patch->paintWeights.Remove(item);
 	}
 
 	groundTexListWidget->ClearSelection();
@@ -505,17 +504,19 @@ FReply SLPatchView::OnGroundTexRemoved()
 	return FReply::Handled();
 }
 
-TSharedRef<ITableRow> SLPatchView::GenerateGroundTexListRow(LGroundTexturePtr item, const TSharedRef<STableViewBase> &ownerTable)
+TSharedRef<ITableRow> SLPatchView::GenerateGroundTexListRow(LPaintWeightPtr item, const TSharedRef<STableViewBase> &ownerTable)
 {
-	return SNew(STableRow<LGroundTexturePtr>, ownerTable)
+	return SNew(STableRow<LPaintWeightPtr>, ownerTable)
 		.Padding(2)
 		[
 			SNew(STextBlock)
-			.Text(FText::FromString(item->name))
+			.Text_Lambda([item]()->FText {
+				return (item->texture.IsValid()) ? FText::FromString(item->texture->name) : FText::FromString("No Texture");
+			})
 		];
 }
 
-void SLPatchView::GroundTexSelectionChanged(LGroundTexturePtr item, ESelectInfo::Type selectType)
+void SLPatchView::GroundTexSelectionChanged(LPaintWeightPtr item, ESelectInfo::Type selectType)
 {
 	groundTexView->Reconstruct(item);
 }
@@ -654,7 +655,7 @@ void SLGroundTexView::Construct(const FArguments& args)
 	Reconstruct(args._GroundTexture);
 }
 
-void SLGroundTexView::Reconstruct(LGroundTexturePtr item)
+void SLGroundTexView::Reconstruct(LPaintWeightPtr item)
 {
 	if (!item.IsValid()) return;
 
