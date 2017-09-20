@@ -150,7 +150,7 @@ void SLRuleView::Reconstruct(LRulePtr item)
 			.Padding(2)
 			[
 				SNew(STextBlock)
-				.Text(FText::FromString("Tile Name"))
+				.Text(FText::FromString("Rule Name"))
 			]
 			+ SHorizontalBox::Slot()
 			[

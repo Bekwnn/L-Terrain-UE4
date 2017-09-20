@@ -66,13 +66,14 @@ FReply SLTileEditor::OnAddTileClicked()
 FReply SLTileEditor::OnRemoveTileClicked()
 {
 	TArray<LSymbolPtr> selectedItems = symbolListWidget->GetSelectedItems();
+
+	symbolListWidget->ClearSelection();
+	symbolListWidget->RequestListRefresh();
+
 	for (LSymbolPtr item : selectedItems)
 	{
 		lTerrainModule->lSystem.symbols.Remove(item);
 	}
-
-	symbolListWidget->ClearSelection();
-	symbolListWidget->RequestListRefresh();
 
 	return FReply::Handled();
 }

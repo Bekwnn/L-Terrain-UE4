@@ -7,6 +7,7 @@ class LRule;
 class LSymbol;
 class LGroundTexture;
 class LPaintWeight;
+class LMeshAsset;
 class LObjectScatter;
 
 typedef TSharedPtr<LSymbol> LSymbolPtr;
@@ -14,6 +15,7 @@ typedef TSharedPtr<LRule> LRulePtr;
 typedef TSharedPtr<LPatch> LPatchPtr;
 typedef TSharedPtr<LGroundTexture> LGroundTexturePtr;
 typedef TSharedPtr<LPaintWeight> LPaintWeightPtr;
+typedef TSharedPtr<LMeshAsset> LMeshAssetPtr;
 typedef TSharedPtr<LObjectScatter> LObjectScatterPtr;
 typedef TArray<TArray<TSharedPtr<LSymbol>>> LSymbol2DMap;
 typedef TSharedPtr<LSymbol2DMap> LSymbol2DMapPtr;
@@ -35,6 +37,7 @@ public:
 	TArray<LPatchPtr> patches;
 	TArray<LSymbol2DMapPtr> lSystemLoDs;
 	TArray<LGroundTexturePtr> groundTextures;
+	TArray<LMeshAssetPtr> meshAssets;
 
 	static const int DIMS = 5;
 };
@@ -112,14 +115,22 @@ public:
 	TArray<LObjectScatterPtr> objectScatters;
 };
 
-class LObjectScatter
+//just a mesh asset with a name
+class LMeshAsset
 {
 public:
 	FString name;
 	FAssetData object;
+};
+
+//controls distribution of a mesh asset
+class LObjectScatter
+{
+public:
+	FString name;
+	LMeshAssetPtr meshAsset;
 	float frequency;
 	//TODO: distribution, noise etc
-
 };
 
 class LGroundTexture

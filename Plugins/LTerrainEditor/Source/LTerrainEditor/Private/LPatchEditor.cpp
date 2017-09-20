@@ -366,7 +366,7 @@ void SLPatchView::Reconstruct(LPatchPtr item)
 			+ SHorizontalBox::Slot()
 			.Padding(2)
 			[
-				SAssignNew(groundTexView, SLGroundTexView)
+				SAssignNew(paintWeightView, SLPaintWeightView)
 				.GroundTexture(nullptr)
 			]
 		]
@@ -432,13 +432,14 @@ FReply SLPatchView::OnNoiseAdded()
 FReply SLPatchView::OnNoiseRemoved()
 {
 	TArray<LNoisePtr> selectedItems = noiseListWidget->GetSelectedItems();
+
+	noiseListWidget->ClearSelection();
+	noiseListWidget->RequestListRefresh();
+
 	for (LNoisePtr item : selectedItems)
 	{
 		patch->noiseMaps.Remove(item);
 	}
-
-	noiseListWidget->ClearSelection();
-	noiseListWidget->RequestListRefresh();
 
 	return FReply::Handled();
 }
@@ -493,13 +494,14 @@ FReply SLPatchView::OnGroundTexAdded()
 FReply SLPatchView::OnGroundTexRemoved()
 {
 	TArray<LPaintWeightPtr> selectedItems = groundTexListWidget->GetSelectedItems();
+
+	groundTexListWidget->ClearSelection();
+	groundTexListWidget->RequestListRefresh();
+
 	for (LPaintWeightPtr item : selectedItems)
 	{
 		patch->paintWeights.Remove(item);
 	}
-
-	groundTexListWidget->ClearSelection();
-	groundTexListWidget->RequestListRefresh();
 
 	return FReply::Handled();
 }
@@ -518,7 +520,7 @@ TSharedRef<ITableRow> SLPatchView::GenerateGroundTexListRow(LPaintWeightPtr item
 
 void SLPatchView::GroundTexSelectionChanged(LPaintWeightPtr item, ESelectInfo::Type selectType)
 {
-	groundTexView->Reconstruct(item);
+	paintWeightView->Reconstruct(item);
 }
 
 FReply SLPatchView::OnScatterAdded()
@@ -536,13 +538,14 @@ FReply SLPatchView::OnScatterAdded()
 FReply SLPatchView::OnScatterRemoved()
 {
 	TArray<LObjectScatterPtr> selectedItems = scatterListWidget->GetSelectedItems();
+
+	scatterListWidget->ClearSelection();
+	scatterListWidget->RequestListRefresh();
+	
 	for (LObjectScatterPtr item : selectedItems)
 	{
 		patch->objectScatters.Remove(item);
 	}
-
-	scatterListWidget->ClearSelection();
-	scatterListWidget->RequestListRefresh();
 
 	return FReply::Handled();
 }
@@ -650,12 +653,12 @@ void SLNoiseView::Reconstruct(LNoisePtr item)
 	];
 }
 
-void SLGroundTexView::Construct(const FArguments& args)
+void SLPaintWeightView::Construct(const FArguments& args)
 {
 	Reconstruct(args._GroundTexture);
 }
 
-void SLGroundTexView::Reconstruct(LPaintWeightPtr item)
+void SLPaintWeightView::Reconstruct(LPaintWeightPtr item)
 {
 	if (!item.IsValid()) return;
 

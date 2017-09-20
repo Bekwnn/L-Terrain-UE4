@@ -133,7 +133,7 @@ float LColoredNoise::Noise(float x, float y)
 		float shiftX = tauShiftDistribution(generatorX);
 		float shiftY = tauShiftDistribution(generatorY);
 
-		values.Add(FMath::Sin((TAU*x + shiftX)*freq) + FMath::Sin((TAU*y + shiftY)*freq));
+		values.Add(FMath::Max(FMath::Sin((TAU*x + shiftX)*freq), FMath::Sin((TAU*y + shiftY)*freq)));
 
 		float weight = FMath::Pow(freq, exponent);
 		sumWeights += weight;

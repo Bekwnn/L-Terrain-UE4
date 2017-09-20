@@ -5,7 +5,7 @@
 
 class SLPatchView;
 class SLNoiseView;
-class SLGroundTexView;
+class SLPaintWeightView;
 class SLScatterView;
 
 //Spawns the rule editor tab and ui
@@ -63,7 +63,7 @@ private:
 	TSharedPtr<SLNoiseView> noiseView;
 
 	TSharedPtr<SListView<LPaintWeightPtr>> groundTexListWidget;
-	TSharedPtr<SLGroundTexView> groundTexView;
+	TSharedPtr<SLPaintWeightView> paintWeightView;
 
 	TSharedPtr<SListView<LObjectScatterPtr>> scatterListWidget;
 	TSharedPtr<SLScatterView> scatterView;
@@ -85,10 +85,10 @@ public:
 	static TArray<TSharedPtr<FString>> noiseNames;
 };
 
-class SLGroundTexView : public SCompoundWidget
+class SLPaintWeightView : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SLGroundTexView) {}
+	SLATE_BEGIN_ARGS(SLPaintWeightView) {}
 	SLATE_ARGUMENT(LPaintWeightPtr, GroundTexture)
 	SLATE_END_ARGS()
 
