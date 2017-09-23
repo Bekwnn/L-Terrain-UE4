@@ -62,7 +62,7 @@ private:
 	TSharedPtr<SListView<LNoisePtr>> noiseListWidget;
 	TSharedPtr<SLNoiseView> noiseView;
 
-	TSharedPtr<SListView<LPaintWeightPtr>> groundTexListWidget;
+	TSharedPtr<SListView<LPaintWeightPtr>> paintListWidget;
 	TSharedPtr<SLPaintWeightView> paintWeightView;
 
 	TSharedPtr<SListView<LObjectScatterPtr>> scatterListWidget;
@@ -94,6 +94,9 @@ public:
 
 	void Construct(const FArguments& args);
 	void Reconstruct(LPaintWeightPtr item);
+
+public:
+	TArray<TSharedPtr<FString>> groundTexNames;
 };
 
 class SLScatterView : public SCompoundWidget
@@ -105,4 +108,7 @@ public:
 
 	void Construct(const FArguments& args);
 	void Reconstruct(LObjectScatterPtr item);
+
+public:
+	TArray<TSharedPtr<FString>> meshAssetNames;
 };

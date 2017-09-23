@@ -127,7 +127,6 @@ public:
 class LObjectScatter
 {
 public:
-	FString name;
 	LMeshAssetPtr meshAsset;
 	float frequency;
 	//TODO: distribution, noise etc

@@ -154,7 +154,7 @@ void SLTileView::Reconstruct(LSymbolPtr item)
 			+ SGridPanel::Slot(1, 2)
 			.Padding(2)
 			[
-				SNew(SObjectPropertyEntryBox) //TODO change to class with thumbnail preview
+				SNew(SObjectPropertyEntryBox)
 				.AllowedClass(UTexture2D::StaticClass())
 				.OnObjectChanged_Lambda([item](FAssetData newTexture) {
 					item->texture = newTexture;

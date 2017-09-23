@@ -340,7 +340,7 @@ void SLPatchView::Reconstruct(LPatchPtr item)
 				.Padding(2)
 				.FillHeight(1)
 				[
-					SAssignNew(groundTexListWidget, SListView<LPaintWeightPtr>)
+					SAssignNew(paintListWidget, SListView<LPaintWeightPtr>)
 					.ListItemsSource(&item->paintWeights)
 					.OnGenerateRow(this, &SLPatchView::GenerateGroundTexListRow)
 					.OnSelectionChanged(this, &SLPatchView::GroundTexSelectionChanged)
@@ -446,32 +446,32 @@ FReply SLPatchView::OnNoiseRemoved()
 
 TSharedRef<ITableRow> SLPatchView::GenerateNoiseListRow(LNoisePtr item, const TSharedRef<STableViewBase>& ownerTable)
 {
-	FString itemName = "";
-	switch (item->GetNoiseType())
-	{
-	case ENoiseType::WHITE:
-		itemName += "White Noise";
-		break;
-	case ENoiseType::PINK:
-		itemName += "Red Noise";
-		break;
-	case ENoiseType::BLUE:
-		itemName += "Blue Noise";
-		break;
-	case ENoiseType::PERLIN:
-		itemName += "Perlin Noise";
-		break;
-	default:
-		break;
-	}
-
-	itemName += FString::Printf(TEXT(" F%.2f A%.2f"), item->frequency, item->amplitude);
-
 	return SNew(STableRow<LNoisePtr>, ownerTable)
 		.Padding(2)
 		[
 			SNew(STextBlock)
-			.Text(FText::FromString(itemName))
+			.Text_Lambda([item]()->FText {
+				FString itemName = "";
+				switch (item->GetNoiseType())
+				{
+				case ENoiseType::WHITE:
+					itemName += "White Noise";
+					break;
+				case ENoiseType::PINK:
+					itemName += "Pink Noise";
+					break;
+				case ENoiseType::BLUE:
+					itemName += "Blue Noise";
+					break;
+				case ENoiseType::PERLIN:
+					itemName += "Perlin Noise";
+					break;
+				default:
+					break;
+				}
+				itemName += FString::Printf(TEXT(" F%.2f A%.2f"), item->frequency, item->amplitude);
+				return FText::FromString(itemName);
+			})
 		];
 }
 
@@ -485,18 +485,19 @@ FReply SLPatchView::OnGroundTexAdded()
 	LPaintWeightPtr newGroundTex = LPaintWeightPtr(new LPaintWeight());
 	patch->paintWeights.Add(newGroundTex);
 
-	groundTexListWidget->SetSelection(newGroundTex);
-	groundTexListWidget->RequestListRefresh();
+	paintListWidget->SetSelection(newGroundTex);
+	paintListWidget->RequestListRefresh();
 
 	return FReply::Handled();
 }
 
 FReply SLPatchView::OnGroundTexRemoved()
 {
-	TArray<LPaintWeightPtr> selectedItems = groundTexListWidget->GetSelectedItems();
+	TArray<LPaintWeightPtr> selectedItems = paintListWidget->GetSelectedItems();
 
-	groundTexListWidget->ClearSelection();
-	groundTexListWidget->RequestListRefresh();
+	paintListWidget->ClearSelection();
+	paintListWidget->RequestListRefresh();
+	paintWeightView->Reconstruct(nullptr);
 
 	for (LPaintWeightPtr item : selectedItems)
 	{
@@ -513,7 +514,7 @@ TSharedRef<ITableRow> SLPatchView::GenerateGroundTexListRow(LPaintWeightPtr item
 		[
 			SNew(STextBlock)
 			.Text_Lambda([item]()->FText {
-				return (item->texture.IsValid()) ? FText::FromString(item->texture->name) : FText::FromString("No Texture");
+				return FText::FromString(item->texture.IsValid() ? item->texture->name : "Unassigned");
 			})
 		];
 }
@@ -526,7 +527,6 @@ void SLPatchView::GroundTexSelectionChanged(LPaintWeightPtr item, ESelectInfo::T
 FReply SLPatchView::OnScatterAdded()
 {
 	LObjectScatterPtr newScatter = LObjectScatterPtr(new LObjectScatter());
-	newScatter->name = "New Object Scatter";
 	patch->objectScatters.Add(newScatter);
 
 	scatterListWidget->SetSelection(newScatter);
@@ -541,6 +541,7 @@ FReply SLPatchView::OnScatterRemoved()
 
 	scatterListWidget->ClearSelection();
 	scatterListWidget->RequestListRefresh();
+	scatterView->Reconstruct(nullptr);
 	
 	for (LObjectScatterPtr item : selectedItems)
 	{
@@ -556,7 +557,9 @@ TSharedRef<ITableRow> SLPatchView::GenerateScatterListRow(LObjectScatterPtr item
 		.Padding(2)
 		[
 			SNew(STextBlock)
-			.Text(FText::FromString(item->name))
+			.Text_Lambda([item]()->FText {
+				return FText::FromString(item->meshAsset.IsValid() ? item->meshAsset->name : "Unassigned");
+			})
 		];
 }
 
@@ -664,8 +667,30 @@ void SLPaintWeightView::Reconstruct(LPaintWeightPtr item)
 
 	ChildSlot
 	[
-		SNew(STextBlock)
-		.Text(FText::FromString("Placeholder ground text."))
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.Padding(2)
+		.AutoHeight()
+		[
+			SNew(SComboBox<LGroundTexturePtr>)
+			.InitiallySelectedItem(item->texture)
+			.OptionsSource(&FLTerrainEditorModule::GetModule()->lSystem.groundTextures)
+			.OnGenerateWidget_Lambda([this](LGroundTexturePtr optionSource)->TSharedRef<SWidget> {
+				return SNew(STextBlock)
+					.Text_Lambda([optionSource]()->FText {
+						return FText::FromString(optionSource.IsValid() ? optionSource->name : "Invalid Option");
+					});
+			})
+			.OnSelectionChanged_Lambda([item](LGroundTexturePtr newSelection, ESelectInfo::Type selectType) {
+				item->texture = newSelection;
+			})
+			[
+				SNew(STextBlock)
+				.Text_Lambda([item]()->FText {
+					return FText::FromString(item->texture.IsValid() ? item->texture->name : "None");
+				})
+			]
+		]
 	];
 }
 
@@ -680,8 +705,30 @@ void SLScatterView::Reconstruct(LObjectScatterPtr item)
 
 	ChildSlot
 	[
-		SNew(STextBlock)
-		.Text(FText::FromString("Placeholder scatter text."))
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.Padding(2)
+		.AutoHeight()
+		[
+			SNew(SComboBox<LMeshAssetPtr>)
+			.InitiallySelectedItem(item->meshAsset)
+			.OptionsSource(&FLTerrainEditorModule::GetModule()->lSystem.meshAssets)
+			.OnGenerateWidget_Lambda([this](LMeshAssetPtr optionSource)->TSharedRef<SWidget> {
+				return SNew(STextBlock)
+					.Text_Lambda([optionSource]()->FText {
+						return FText::FromString(optionSource.IsValid() ? optionSource->name : "Invalid Option");
+					});
+			})
+			.OnSelectionChanged_Lambda([item](LMeshAssetPtr newSelection, ESelectInfo::Type selectType) {
+				item->meshAsset = newSelection;
+			})
+			[
+				SNew(STextBlock)
+				.Text_Lambda([item]()->FText {
+					return FText::FromString(item->meshAsset.IsValid() ? item->meshAsset->name : "None");
+				})
+			]
+		]
 	];
 }
 

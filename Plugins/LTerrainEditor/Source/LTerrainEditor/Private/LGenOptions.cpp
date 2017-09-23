@@ -121,7 +121,9 @@ TSharedRef<ITableRow> SLGenOptions::GenerateGroundTexListRow(LGroundTexturePtr i
 		.Padding(2)
 		[
 			SNew(STextBlock)
-			.Text(FText::FromString(item->name))
+			.Text_Lambda([item]()->FText{
+				return FText::FromString(item->name);
+			})
 		];
 }
 
@@ -136,7 +138,9 @@ TSharedRef<ITableRow> SLGenOptions::GenerateObjectListRow(LMeshAssetPtr item, co
 		.Padding(2)
 		[
 			SNew(STextBlock)
-			.Text(FText::FromString(item->name))
+			.Text_Lambda([item]()->FText{
+				return FText::FromString(item->name);
+			})
 		];
 }
 
@@ -162,7 +166,7 @@ FReply SLGenOptions::OnGenerateClicked()
 FReply SLGenOptions::OnAddGroundTexClicked()
 {
 	LGroundTexturePtr newGroundTex = LGroundTexturePtr(new LGroundTexture());
-	newGroundTex->name = "New Ground Tex";
+	newGroundTex->name = "Ground Tex " + FString::FromInt(FLTerrainEditorModule::GetModule()->lSystem.groundTextures.Num());
 
 	lTerrainModule->lSystem.groundTextures.Add(newGroundTex);
 
@@ -190,7 +194,8 @@ FReply SLGenOptions::OnRemoveGroundTexClicked()
 FReply SLGenOptions::OnAddMeshAssetClicked()
 {
 	LMeshAssetPtr newMeshAsset = LMeshAssetPtr(new LMeshAsset());
-	newMeshAsset->name = "New Mesh Asset";
+
+	newMeshAsset->name = "Mesh Asset " + FString::FromInt(FLTerrainEditorModule::GetModule()->lSystem.meshAssets.Num());
 
 	lTerrainModule->lSystem.meshAssets.Add(newMeshAsset);
 
@@ -264,7 +269,7 @@ void SLGroundTexView::Reconstruct(LGroundTexturePtr item)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			[
-				SNew(SObjectPropertyEntryBox) //TODO change to class with thumbnail preview
+				SNew(SObjectPropertyEntryBox)
 				.AllowedClass(UTexture2D::StaticClass())
 				.OnObjectChanged_Lambda([item](FAssetData newTexture) {
 					item->texture = newTexture;
@@ -272,11 +277,12 @@ void SLGroundTexView::Reconstruct(LGroundTexturePtr item)
 				.ObjectPath_Lambda([item]()->FString {
 					return item->texture.ObjectPath.ToString();
 				})
+				.EnableContentPicker(true)
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			[
-				SNew(SObjectPropertyEntryBox) //TODO change to class with thumbnail preview
+				SNew(SObjectPropertyEntryBox)
 				.AllowedClass(UTexture2D::StaticClass())
 				.OnObjectChanged_Lambda([item](FAssetData newTexture) {
 					item->normalMap = newTexture;
@@ -284,6 +290,7 @@ void SLGroundTexView::Reconstruct(LGroundTexturePtr item)
 				.ObjectPath_Lambda([item]()->FString {
 					return item->normalMap.ObjectPath.ToString();
 				})
+				.EnableContentPicker(true)
 			]
 		]
 	];
