@@ -48,6 +48,8 @@ public:
 	void Construct(const FArguments& args);
 
 	void Reconstruct(LGroundTexturePtr item);
+
+	FReply CreateNewLandscapeLayerInfo(LGroundTexturePtr viewItem);
 };
 
 class SLMeshAssetView : public SCompoundWidget

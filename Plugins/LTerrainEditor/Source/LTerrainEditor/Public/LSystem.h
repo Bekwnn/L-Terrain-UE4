@@ -136,6 +136,7 @@ class LGroundTexture
 {
 public:
 	FString name;
+	FAssetData layerInfo;
 	FAssetData texture;
 	FAssetData normalMap;
 };

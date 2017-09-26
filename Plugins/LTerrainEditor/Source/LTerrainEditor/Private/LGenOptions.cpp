@@ -3,6 +3,9 @@
 #include "LTerrainGeneration.h"
 #include "Kismet/GameplayStatics.h"
 #include "Editor.h"
+#include "LandscapeLayerInfoObject.h"
+#include "Dialogs/DlgPickAssetPath.h"
+#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "FLTerrainEditorModule"
 
@@ -38,7 +41,7 @@ void SLGenOptions::Construct(const FArguments & args)
 					.AutoHeight()
 					[
 						SNew(SButton)
-						.Text(LOCTEXT("NewRuleButton", "+ Add Layer"))
+						.Text(LOCTEXT("NewLayerButton", "+ Add Layer"))
 						.OnClicked(FOnClicked::CreateRaw(this, &SLGenOptions::OnAddGroundTexClicked))
 					]
 					+ SVerticalBox::Slot()
@@ -46,7 +49,7 @@ void SLGenOptions::Construct(const FArguments & args)
 					.AutoHeight()
 					[
 						SNew(SButton)
-						.Text(LOCTEXT("DelRuleButton", "- Remove Selected Layer"))
+						.Text(LOCTEXT("DelLayerButton", "- Remove Selected Layer"))
 						.OnClicked(FOnClicked::CreateRaw(this, &SLGenOptions::OnRemoveGroundTexClicked))
 					]
 				]
@@ -82,7 +85,7 @@ void SLGenOptions::Construct(const FArguments & args)
 					.AutoHeight()
 					[
 						SNew(SButton)
-						.Text(LOCTEXT("NewRuleButton", "+ Add Mesh Asset"))
+						.Text(LOCTEXT("AddMeshButton", "+ Add Mesh Asset"))
 						.OnClicked(FOnClicked::CreateRaw(this, &SLGenOptions::OnAddMeshAssetClicked))
 					]
 					+ SVerticalBox::Slot()
@@ -90,7 +93,7 @@ void SLGenOptions::Construct(const FArguments & args)
 					.AutoHeight()
 					[
 						SNew(SButton)
-						.Text(LOCTEXT("DelRuleButton", "- Remove Mesh Asset"))
+						.Text(LOCTEXT("DelMeshButton", "- Remove Mesh Asset"))
 						.OnClicked(FOnClicked::CreateRaw(this, &SLGenOptions::OnRemoveMeshAssetClicked))
 					]
 				]
@@ -220,6 +223,8 @@ FReply SLGenOptions::OnRemoveMeshAssetClicked()
 	return FReply::Handled();
 }
 
+///GENOPTIONS END
+///GROUNDTEXVIEW BEGIN
 
 void SLGroundTexView::Construct(const FArguments& args)
 {
@@ -268,32 +273,130 @@ void SLGroundTexView::Reconstruct(LGroundTexturePtr item)
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
+			.Padding(2)
 			[
-				SNew(SObjectPropertyEntryBox)
-				.AllowedClass(UTexture2D::StaticClass())
-				.OnObjectChanged_Lambda([item](FAssetData newTexture) {
-					item->texture = newTexture;
-				})
-				.ObjectPath_Lambda([item]()->FString {
-					return item->texture.ObjectPath.ToString();
-				})
-				.EnableContentPicker(true)
+				SNew(STextBlock)
+				.Text(LOCTEXT("LayerInfoLabel", "Layer Info Object"))
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
+			.Padding(2)
 			[
 				SNew(SObjectPropertyEntryBox)
-				.AllowedClass(UTexture2D::StaticClass())
-				.OnObjectChanged_Lambda([item](FAssetData newTexture) {
-					item->normalMap = newTexture;
+				.AllowedClass(ULandscapeLayerInfoObject::StaticClass())
+				.OnObjectChanged_Lambda([item](FAssetData newInfo) {
+					item->layerInfo = newInfo;
 				})
 				.ObjectPath_Lambda([item]()->FString {
-					return item->normalMap.ObjectPath.ToString();
+					return item->layerInfo.ObjectPath.ToString();
 				})
-				.EnableContentPicker(true)
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(SButton)
+				.OnClicked_Raw(this, &SLGroundTexView::CreateNewLandscapeLayerInfo, item)
+				.Text(LOCTEXT("NewLayerAssetButton", "New"))
+			]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(2)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(2)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("DiffuseLabel", "Texture"))
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(2)
+				[
+					SNew(SObjectPropertyEntryBox)
+					.AllowedClass(UTexture2D::StaticClass())
+					.OnObjectChanged_Lambda([item](FAssetData newTexture) {
+						item->texture = newTexture;
+					})
+					.ObjectPath_Lambda([item]()->FString {
+						return item->texture.ObjectPath.ToString();
+					})
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(2)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("NormMapLabel", "Normal Map"))
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(2)
+				[
+					SNew(SObjectPropertyEntryBox)
+					.AllowedClass(UTexture2D::StaticClass())
+					.OnObjectChanged_Lambda([item](FAssetData newTexture) {
+						item->normalMap = newTexture;
+					})
+					.ObjectPath_Lambda([item]()->FString {
+						return item->normalMap.ObjectPath.ToString();
+					})
+				]
 			]
 		]
 	];
+}
+
+FReply SLGroundTexView::CreateNewLandscapeLayerInfo(LGroundTexturePtr viewItem)
+{
+	FName layerName = FName(*viewItem->name);
+	FName layerObjectName = FName(*FString::Printf(TEXT("%s_LayerInfo"), *layerName.ToString()));
+
+	FString path = TEXT("/Game/LTerrain_assets/");
+	FString packageName = path + layerObjectName.ToString();
+
+	TSharedRef<SDlgPickAssetPath> NewLayerDlg =
+		SNew(SDlgPickAssetPath)
+		.Title(LOCTEXT("CreateNewLayerInfo", "Create New Landscape Layer Info Object"))
+		.DefaultAssetPath(FText::FromString(packageName));
+
+	if (NewLayerDlg->ShowModal() != EAppReturnType::Cancel)
+	{
+		packageName = NewLayerDlg->GetFullAssetPath().ToString();
+		layerObjectName = FName(*NewLayerDlg->GetAssetName().ToString());
+
+		UPackage* package = CreatePackage(NULL, *packageName);
+		ULandscapeLayerInfoObject* newInfo = NewObject<ULandscapeLayerInfoObject>(package, layerObjectName, RF_Public | RF_Standalone | RF_Transactional);
+		newInfo->LayerName = layerName;
+		newInfo->bNoWeightBlend = false;
+
+		//notify asset registry
+		FAssetRegistryModule::AssetCreated(newInfo);
+
+		//mark the package dirty
+		package->MarkPackageDirty();
+
+		//show in content browser
+		TArray<UObject*> objects;
+		objects.Add(newInfo);
+		GEditor->SyncBrowserToObjects(objects);
+	}
+
+	return FReply::Handled();
 }
 
 void SLMeshAssetView::Construct(const FArguments& args)

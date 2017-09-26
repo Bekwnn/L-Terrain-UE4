@@ -4,6 +4,8 @@
 #include "LandscapeEdit.h"
 #include "Landscape.h"
 #include "LandscapeInfo.h"
+#include "LandscapeLayerInfoObject.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 #define LOCTEXT_NAMESPACE "FLTerrainEditorModule"
 
@@ -40,7 +42,12 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 	//painting layer data
 	int layerCount = lSystem.groundTextures.Num();
 	TArray<ULandscapeLayerInfoObject*> layerInfos = TArray<ULandscapeLayerInfoObject*>();
-	layerInfos.Init(nullptr, layerCount);
+	for (int i = 0; i < lSystem.groundTextures.Num(); ++i)
+	{
+		ULandscapeLayerInfoObject* texLayerInfo = Cast<ULandscapeLayerInfoObject>(lSystem.groundTextures[i]->layerInfo.GetAsset());
+		layerInfos.Add(texLayerInfo);
+		layerInfos[layerInfos.Num() - 1]->LayerName = FName(*FString::Printf(TEXT("Layer_%d"), i));
+	}
 
 	//some constants to be used in generation
 	float metersToU16 = (UINT16_MAX / 2) / 256.f;
@@ -232,13 +239,45 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 		if (layerCount != 0)
 			landscapeComponent->InitWeightmapData(layerInfos, weightData);
 	}
+	///END MAIN LOOP
+
+	///ASSIGN LANDSCAPE MATERIAL PARAMETERS
+	UMaterialInstanceConstant* landscapeMat = Cast<UMaterialInstanceConstant>(terrain->LandscapeMaterial);
+	if (landscapeMat != nullptr)
+	{
+		for (int i = 0; i < lSystem.groundTextures.Num(); ++i)
+		{
+			if (lSystem.groundTextures[i]->texture.IsValid())
+			{
+				UTexture2D* diffuse = Cast<UTexture2D>(lSystem.groundTextures[i]->texture.GetAsset());
+				if (diffuse != nullptr)
+				{
+					FName diffuseParamName = FName(*FString::Printf(TEXT("Diffuse_%d"), i));
+					landscapeMat->SetTextureParameterValueEditorOnly(diffuseParamName, diffuse);
+				}
+			}
+
+			if (lSystem.groundTextures[i]->normalMap.IsValid())
+			{
+				UTexture2D* normalMap = Cast<UTexture2D>(lSystem.groundTextures[i]->normalMap.GetAsset());
+				if (normalMap != nullptr)
+				{
+					FName normMapParamName = FName(*FString::Printf(TEXT("Normal_%d"), i));
+					landscapeMat->SetTextureParameterValueEditorOnly(normMapParamName, normalMap);
+				}
+			}
+		}
+
+		
+	}
+	///ASSIGN LANDSCAPE MATERIAL PARAMETERS END
 
 	///UPDATE TERRAIN START
 	for (ULandscapeComponent* landscapeComponent : terrain->LandscapeComponents)
 	{
-		landscapeComponent->UpdateMaterialInstances();
 		landscapeComponent->UpdateCollisionLayerData();
 		landscapeComponent->UpdateCachedBounds();
+		landscapeComponent->UpdateMaterialInstances();
 		//TODO: figure out other functions to call to update lightmap
 	}
 	///UPDATE TERRAIN END
@@ -279,11 +318,14 @@ void LTerrainGeneration::GetWeightMapsAt(LSystem& lsystem, TArray<LPaintWeightPt
 		int idx = lsystem.groundTextures.Find(paintWeight->texture);
 		idxsTouched.AddUnique(idx);
 
+		outWeights[idx] = 1.f;
+		/*
 		float noiseVal = paintWeight->noiseMap->Noise(x, y);
 		float halfFeather = paintWeight->thresholdFeather / 2;
 		float alpha = FMath::Clamp((noiseVal - (paintWeight->threshold + halfFeather)) / paintWeight->thresholdFeather, 0.f, 1.f);
 		float weight = FMath::Lerp(0.f, 1.f, alpha);
 
 		outWeights[idx] = weight;
+		*/
 	}
 }
