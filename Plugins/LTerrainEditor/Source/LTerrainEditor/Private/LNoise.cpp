@@ -41,16 +41,16 @@ void LNoise::InitNoise(int32 seedVal)
 	switch (noiseType)
 	{
 	case ENoiseType::WHITE:
-		noiseObject = TSharedPtr<LNoiseObject>(new LColoredNoise(0.f));
+		noiseObject = LNoiseObjectPtr(new LColoredNoise(0.f));
 		break;
 	case ENoiseType::PINK:
-		noiseObject = TSharedPtr<LNoiseObject>(new LColoredNoise(-1.f));
+		noiseObject = LNoiseObjectPtr(new LColoredNoise(-1.f));
 		break;
 	case ENoiseType::BLUE:
-		noiseObject = TSharedPtr<LNoiseObject>(new LColoredNoise(1.f));
+		noiseObject = LNoiseObjectPtr(new LColoredNoise(1.f));
 		break;
 	case ENoiseType::PERLIN:
-		noiseObject = TSharedPtr<LNoiseObject>(new LPerlinNoise());
+		noiseObject = LNoiseObjectPtr(new LPerlinNoise());
 		break;
 	default:
 		break;
@@ -75,15 +75,16 @@ float LPerlinNoise::Noise(float x, float y)
 	float xFracEase = EaseFunction(x - x0);
 	float yFracEase = EaseFunction(y - y0);
 
-	float dot0, dot1, lerpx0, lerpx1;
+	float dot0, dot1, lerpy0, lerpy1;
+
 	dot0 = DotGrad(x0, y0, x, y);
 	dot1 = DotGrad(x1, y0, x, y);
-	lerpx0 = FMath::Lerp(dot0, dot1, xFracEase);
+	lerpy0 = FMath::Lerp(dot0, dot1, xFracEase);
 	dot0 = DotGrad(x0, y1, x, y);
 	dot1 = DotGrad(x1, y1, x, y);
-	lerpx1 = FMath::Lerp(dot0, dot1, xFracEase);
+	lerpy1 = FMath::Lerp(dot0, dot1, xFracEase);
 
-	return FMath::Lerp(lerpx0, lerpx1, yFracEase);
+	return FMath::Lerp(lerpy0, lerpy1, yFracEase);
 }
 
 void LPerlinNoise::Initialize(int32 seedVal)
@@ -95,8 +96,10 @@ float LPerlinNoise::DotGrad(int ix, int iy, float x, float y)
 {
 	//get our vector using our seed
 	//to get semi-unique seed val from ix, iy, using: (ix*primeA + ix) + (iy*primeB + iy)
+	RNGLock.Lock(); //lock mutex
 	generator.seed(seed + (ix * 47 + ix) + (iy * 113 + iy));
 	FVector2D gridVec = FVector2D(1.f, 0.f).GetRotated(gradVecRotDistribution(generator));
+	RNGLock.Unlock(); //unlock mutex
 
 	float dx = x - ix;
 	float dy = y - iy;
@@ -121,7 +124,7 @@ LColoredNoise::LColoredNoise(float exponent)
 
 float LColoredNoise::Noise(float x, float y)
 {
-
+	RNGLock.Lock(); //lock mutex
 	generatorX.seed(seed + y);
 	generatorY.seed(seed2 + x);
 	TArray<float> values = TArray<float>();
@@ -139,6 +142,7 @@ float LColoredNoise::Noise(float x, float y)
 		sumWeights += weight;
 		weights.Add(weight);
 	}
+	RNGLock.Unlock(); //unlock mutex
 
 	float weightedValue = 0.f;
 	for (int i = 0; i < values.Num(); ++i)

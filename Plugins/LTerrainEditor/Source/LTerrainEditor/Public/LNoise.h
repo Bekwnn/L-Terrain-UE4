@@ -5,7 +5,8 @@
 class LNoise;
 class LNoiseObject;
 
-typedef TSharedPtr<LNoise> LNoisePtr;
+typedef TSharedPtr<LNoise, ESPMode::ThreadSafe> LNoisePtr;
+typedef TSharedPtr<LNoiseObject, ESPMode::ThreadSafe> LNoiseObjectPtr;
 
 enum class ENoiseType : uint8
 {
@@ -34,7 +35,7 @@ public:
 
 private:
 	ENoiseType noiseType;
-	TSharedPtr<LNoiseObject> noiseObject;
+	LNoiseObjectPtr noiseObject;
 };
 
 class LNoiseObject
@@ -45,6 +46,7 @@ public:
 
 protected:
 	int32 seed;
+	FCriticalSection RNGLock;
 };
 
 class LColoredNoise : public LNoiseObject

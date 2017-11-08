@@ -15,11 +15,11 @@ void FLTerrainComponentMainTask::DoWork()
 	ULandscapeComponent* landscapeComponent = SP.terrain->LandscapeComponents[compIdx];
 
 	//init height data
-	TArray<FColor> hmapdata = TArray<FColor>();
+	TArray<FColor>& hmapdata = SP.heightMaps[compIdx];
 	hmapdata.Reserve(FMath::Square(SP.ComponentSizeVerts));
 
 	//init weight data to 0
-	TArray<TArray<uint8>> weightData = TArray<TArray<uint8>>(); //stored as [layer][datapos]
+	TArray<TArray<uint8>>& weightData = SP.weightMaps[compIdx]; //stored as [layer][datapos]
 	weightData.Init(TArray<uint8>(), SP.layerCount);
 	for (int i = 0; i < SP.layerCount; ++i)
 	{
@@ -140,14 +140,6 @@ void FLTerrainComponentMainTask::DoWork()
 			}
 		}
 	}
-
-	//APPLY DATA
-	landscapeComponent->InitHeightmapData(hmapdata, false);
-
-	if (SP.layerCount != 0)
-		landscapeComponent->InitWeightmapData(SP.layerInfos, weightData);
-
-	FTransform testFoliageT = landscapeComponent->GetComponentToWorld();
 
 	onCompletion.ExecuteIfBound(true); //succeeded in process
 }

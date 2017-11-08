@@ -22,6 +22,8 @@ public:
 	uint16 zeroHeight;
 	LSystem* lSystem;
 	TArray<ULandscapeLayerInfoObject*> layerInfos;
+	TArray<TArray<FColor>> heightMaps;
+	TArray<TArray<TArray<uint8>>> weightMaps;
 
 	//thread safe add unique
 	void AddUniqueToUsedPatches(LPatchPtr val)

@@ -23,6 +23,9 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 	SP.landscapeComponentCountSqrt = FMath::Sqrt(SP.landscapeComponentCount);
 	if (SP.landscapeComponentCount == 0 || lSystem.lSystemLoDs.Num() == 0) return;
 
+	SP.heightMaps.Init(TArray<FColor>(), SP.landscapeComponentCount);
+	SP.weightMaps.Init(TArray<TArray<uint8>>(), SP.landscapeComponentCount);
+
 	terrain->Modify();
 
 	//match patches to symbols in the LSystem
@@ -48,25 +51,25 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 	SP.roughHeightmap.Reserve(SP.sourceSizeX*SP.sourceSizeY);
 
 	//painting layer data
-	int layerCount = lSystem.groundTextures.Num();
-	TArray<ULandscapeLayerInfoObject*> layerInfos = TArray<ULandscapeLayerInfoObject*>();
-	for (int i = 0; i < lSystem.groundTextures.Num(); ++i)
+	SP.layerCount = lSystem.groundTextures.Num();
+	SP.layerInfos = TArray<ULandscapeLayerInfoObject*>();
+	for (int i = 0; i < SP.layerCount; ++i)
 	{
 		ULandscapeLayerInfoObject* texLayerInfo = Cast<ULandscapeLayerInfoObject>(lSystem.groundTextures[i]->layerInfo.GetAsset());
-		layerInfos.Add(texLayerInfo);
-		layerInfos[layerInfos.Num() - 1]->LayerName = FName(*FString::Printf(TEXT("Layer_%d"), i));
+		SP.layerInfos.Add(texLayerInfo);
+		SP.layerInfos[SP.layerInfos.Num() - 1]->LayerName = FName(*FString::Printf(TEXT("Layer_%d"), i));
 	}
 
 	//some constants to be used in generation
-	float metersToU16 = (UINT16_MAX / 2) / 256.f;
-	uint16 zeroHeight = UINT16_MAX / 2;
+	SP.metersToU16 = (UINT16_MAX / 2) / 256.f;
+	SP.zeroHeight = UINT16_MAX / 2;
 
 	for (int i = 0; i < SP.sourceSizeY; ++i)
 	{
 		for (int j = 0; j < SP.sourceSizeX; ++j)
 		{
 			LPatchPtr curPatch = *SP.symbolPatchMap.Find((*SP.sourceLSymbolMap)[i][j]);
-			SP.roughHeightmap.Add(zeroHeight + (int)(FMath::FRandRange(curPatch->minHeight, curPatch->maxHeight) * metersToU16));
+			SP.roughHeightmap.Add(SP.zeroHeight + (int)(FMath::FRandRange(curPatch->minHeight, curPatch->maxHeight) * SP.metersToU16));
 		}
 	}
 
@@ -113,8 +116,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 
 	FOnCompletion onCompletion = FOnCompletion();
 	int taskRunningCount = 0;
-	onCompletion.BindLambda([&loadingBar, &taskRunningCount](bool bWasSuccessful) {
-		loadingBar.EnterProgressFrame();
+	onCompletion.BindLambda([&taskRunningCount](bool bWasSuccessful) {
 		--taskRunningCount;
 	});
 	
@@ -126,10 +128,30 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 	}
 	///END MAIN LOOP
 
-	//wait for async tasks to finish
-	FPlatformProcess::ConditionalSleep([&taskRunningCount]()->bool {
-		return (taskRunningCount == 0);
-	});
+	//update loading bar while waiting for async tasks to finish
+	for (int barCount = taskRunningCount; taskRunningCount > 0 && barCount > 0; )
+	{
+		while (barCount > taskRunningCount)
+		{
+			loadingBar.EnterProgressFrame();
+			--barCount;
+		}
+	}
+
+	///ASSIGN DATA FROM MAIN LOOP (can only be done in main thread)
+	for (int compIdx = 0; compIdx < SP.landscapeComponentCount; ++compIdx)
+	{
+		//APPLY DATA
+		ULandscapeComponent* landscapeComponent = terrain->LandscapeComponents[compIdx];
+		landscapeComponent->InitHeightmapData(SP.heightMaps[compIdx], false);
+
+		if (SP.layerCount != 0)
+			landscapeComponent->InitWeightmapData(SP.layerInfos, SP.weightMaps[compIdx]);
+
+		//TODO: foliage
+		FTransform testFoliageT = landscapeComponent->GetComponentToWorld();
+	}
+	///END ASSIGNING DATA
 
 	///ASSIGN LANDSCAPE MATERIAL PARAMETERS
 	UMaterialInstanceConstant* landscapeMat = Cast<UMaterialInstanceConstant>(terrain->LandscapeMaterial);
