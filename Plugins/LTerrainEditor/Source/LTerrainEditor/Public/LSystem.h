@@ -10,15 +10,15 @@ class LPaintWeight;
 class LMeshAsset;
 class LObjectScatter;
 
-typedef TSharedPtr<LSymbol> LSymbolPtr;
-typedef TSharedPtr<LRule> LRulePtr;
-typedef TSharedPtr<LPatch> LPatchPtr;
-typedef TSharedPtr<LGroundTexture> LGroundTexturePtr;
-typedef TSharedPtr<LPaintWeight> LPaintWeightPtr;
-typedef TSharedPtr<LMeshAsset> LMeshAssetPtr;
-typedef TSharedPtr<LObjectScatter> LObjectScatterPtr;
-typedef TArray<TArray<TSharedPtr<LSymbol>>> LSymbol2DMap;
-typedef TSharedPtr<LSymbol2DMap> LSymbol2DMapPtr;
+typedef TSharedPtr<LSymbol, ESPMode::ThreadSafe> LSymbolPtr;
+typedef TSharedPtr<LRule, ESPMode::ThreadSafe> LRulePtr;
+typedef TSharedPtr<LPatch, ESPMode::ThreadSafe> LPatchPtr;
+typedef TSharedPtr<LGroundTexture, ESPMode::ThreadSafe> LGroundTexturePtr;
+typedef TSharedPtr<LPaintWeight, ESPMode::ThreadSafe> LPaintWeightPtr;
+typedef TSharedPtr<LMeshAsset, ESPMode::ThreadSafe> LMeshAssetPtr;
+typedef TSharedPtr<LObjectScatter, ESPMode::ThreadSafe> LObjectScatterPtr;
+typedef TArray<TArray<TSharedPtr<LSymbol, ESPMode::ThreadSafe>>> LSymbol2DMap;
+typedef TSharedPtr<LSymbol2DMap, ESPMode::ThreadSafe> LSymbol2DMapPtr;
 
 class LSystem
 {
@@ -99,9 +99,9 @@ public:
 		maxHeight = 0.f;
 		bHeightMatch = true;
 		heightSmoothFactor = 0.5f;
-		noiseMaps = TArray<TSharedPtr<LNoise>>();
-		paintWeights = TArray<TSharedPtr<LPaintWeight>>();
-		objectScatters = TArray<TSharedPtr<LObjectScatter>>();
+		noiseMaps = TArray<LNoisePtr>();
+		paintWeights = TArray<LPaintWeightPtr>();
+		objectScatters = TArray<LObjectScatterPtr>();
 	}
 
 	FString name;
@@ -120,6 +120,7 @@ class LMeshAsset
 {
 public:
 	FString name;
+	FAssetData foliageType;
 	FAssetData object;
 };
 

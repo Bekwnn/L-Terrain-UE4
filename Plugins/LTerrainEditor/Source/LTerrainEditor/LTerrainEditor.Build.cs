@@ -28,6 +28,7 @@ public class LTerrainEditor : ModuleRules
 			{
 				"Core",
 				"Landscape",
+                "Foliage",
 			}
 			);
 			

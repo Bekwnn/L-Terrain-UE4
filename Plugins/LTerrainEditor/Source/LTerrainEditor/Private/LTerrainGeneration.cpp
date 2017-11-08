@@ -1,5 +1,8 @@
 #include "LTerrainEditor.h"
 #include "LTerrainGeneration.h"
+
+#include "LTerrainComponentMainTask.h"
+
 #include "LandscapeComponent.h"
 #include "LandscapeEdit.h"
 #include "Landscape.h"
@@ -9,35 +12,40 @@
 
 #define LOCTEXT_NAMESPACE "FLTerrainEditorModule"
 
-void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
+void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 {
-	int landscapeComponentCount = terrain->LandscapeComponents.Num();
-	int landscapeComponentCountSqrt = FMath::Sqrt(landscapeComponentCount);
-	if (landscapeComponentCount == 0 || lSystem.lSystemLoDs.Num() == 0) return;
+	LSharedTaskParams SP;
+
+	SP.terrain = terrain;
+	SP.lSystem = &lSystem;
+
+	SP.landscapeComponentCount = terrain->LandscapeComponents.Num();
+	SP.landscapeComponentCountSqrt = FMath::Sqrt(SP.landscapeComponentCount);
+	if (SP.landscapeComponentCount == 0 || lSystem.lSystemLoDs.Num() == 0) return;
 
 	terrain->Modify();
 
 	//match patches to symbols in the LSystem
-	LSymbol2DMapPtr sourceLSymbolMap = lSystem.lSystemLoDs[lSystem.lSystemLoDs.Num() - 1];
-	int sourceSizeX = (*sourceLSymbolMap).Num();
-	int sourceSizeY = (*sourceLSymbolMap)[0].Num();
+	SP.sourceLSymbolMap = lSystem.lSystemLoDs[lSystem.lSystemLoDs.Num() - 1];
+	SP.sourceSizeX = (*SP.sourceLSymbolMap).Num();
+	SP.sourceSizeY = (*SP.sourceLSymbolMap)[0].Num();
 	//ComponentSizeVerts taken from LandscapeEdit.cpp, InitHeightmapData checks size as this squared.
-	int32 ComponentSizeVerts = terrain->LandscapeComponents[0]->NumSubsections * (terrain->LandscapeComponents[0]->SubsectionSizeQuads + 1);
+	SP.ComponentSizeVerts = terrain->LandscapeComponents[0]->NumSubsections * (terrain->LandscapeComponents[0]->SubsectionSizeQuads + 1);
 
 	//generate map for symbols and matching patches
-	TMap<LSymbolPtr, LPatchPtr> symbolPatchMap = TMap<LSymbolPtr, LPatchPtr>();
+	SP.symbolPatchMap = TMap<LSymbolPtr, LPatchPtr>();
 	for (LSymbolPtr symbol : lSystem.symbols)
 	{
 		LPatchPtr matchingPatch = lSystem.GetLPatchMatch(symbol);
-		symbolPatchMap.Add(symbol, matchingPatch);
+		SP.symbolPatchMap.Add(symbol, matchingPatch);
 	}
 
 	//after heightmap pass, contains a list of unique patches used in the landscape
-	TArray<LPatchPtr> allUsedPatches = TArray<LPatchPtr>();
+	SP.allUsedPatches = TArray<LPatchPtr>();
 
 	//initial rough heightmap
-	TArray<uint16> roughHeightmap = TArray<uint16>();
-	roughHeightmap.Reserve(sourceSizeX*sourceSizeY);
+	SP.roughHeightmap = TArray<uint16>();
+	SP.roughHeightmap.Reserve(SP.sourceSizeX*SP.sourceSizeY);
 
 	//painting layer data
 	int layerCount = lSystem.groundTextures.Num();
@@ -53,36 +61,36 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 	float metersToU16 = (UINT16_MAX / 2) / 256.f;
 	uint16 zeroHeight = UINT16_MAX / 2;
 
-	for (int i = 0; i < sourceSizeY; ++i)
+	for (int i = 0; i < SP.sourceSizeY; ++i)
 	{
-		for (int j = 0; j < sourceSizeX; ++j)
+		for (int j = 0; j < SP.sourceSizeX; ++j)
 		{
-			LPatchPtr curPatch = *symbolPatchMap.Find((*sourceLSymbolMap)[i][j]);
-			roughHeightmap.Add(zeroHeight + (int)(FMath::FRandRange(curPatch->minHeight, curPatch->maxHeight) * metersToU16));
+			LPatchPtr curPatch = *SP.symbolPatchMap.Find((*SP.sourceLSymbolMap)[i][j]);
+			SP.roughHeightmap.Add(zeroHeight + (int)(FMath::FRandRange(curPatch->minHeight, curPatch->maxHeight) * metersToU16));
 		}
 	}
 
 	//smooth rough height map before finer detail step
-	TArray<uint16> smoothedHeightMap = roughHeightmap;
+	SP.smoothedHeightMap = SP.roughHeightmap;
 
-	for (int i = 0; i < sourceSizeY; ++i)
+	for (int i = 0; i < SP.sourceSizeY; ++i)
 	{
-		for (int j = 0; j < sourceSizeX; ++j)
+		for (int j = 0; j < SP.sourceSizeX; ++j)
 		{
-			LPatchPtr curPatch = *symbolPatchMap.Find((*sourceLSymbolMap)[i][j]);
+			LPatchPtr curPatch = *SP.symbolPatchMap.Find((*SP.sourceLSymbolMap)[i][j]);
 			if (!curPatch->bHeightMatch) continue;
 
 			int avgCount = 1;
-			float avg = roughHeightmap[i*sourceSizeY + j];
+			float avg = SP.roughHeightmap[i*SP.sourceSizeY + j];
 			for (int ii = -1; ii <= 1; ++ii)
 			{
-				if (i + ii < 0 || i + ii >= sourceSizeY) continue;
+				if (i + ii < 0 || i + ii >= SP.sourceSizeY) continue;
 
 				for (int jj = -1; jj <= 1; ++jj)
 				{
-					if (j + jj < 0 || j + jj >= sourceSizeX) continue;
+					if (j + jj < 0 || j + jj >= SP.sourceSizeX) continue;
 
-					avg += (float)roughHeightmap[(i + ii)*sourceSizeY + (j + jj)];
+					avg += (float)SP.roughHeightmap[(i + ii)*SP.sourceSizeY + (j + jj)];
 					++avgCount;
 				}
 			}
@@ -90,156 +98,38 @@ void LTerrainGeneration::GenerateTerrain(LSystem & lSystem, ALandscape* terrain)
 			if (avgCount > 1)
 			{
 				//if we have a useful average, blend towards it
-				smoothedHeightMap[i*sourceSizeY + j] = (int)FMath::Lerp(
-					(float)smoothedHeightMap[i*sourceSizeY + j],
+				SP.smoothedHeightMap[i*SP.sourceSizeY + j] = (int)FMath::Lerp(
+					(float)SP.smoothedHeightMap[i*SP.sourceSizeY + j],
 					avg / avgCount,
 					curPatch->heightSmoothFactor);
 			}
 		}
 	}
 
-	FScopedSlowTask loadingBar(landscapeComponentCount+1, LOCTEXT("InitializeText", "Initializing Landscape Data"));
+	///SET UP MAIN LOOP AS ASYNC TASK
+	FScopedSlowTask loadingBar(SP.landscapeComponentCount+1, LOCTEXT("InitializeText", "Initializing Landscape Data"));
 	loadingBar.MakeDialog();
 	loadingBar.EnterProgressFrame();
-	
-	//goes positive X each +1, then positive Y for a row
-	for (int compIdx = 0; compIdx < landscapeComponentCount; ++compIdx)
-	{
+
+	FOnCompletion onCompletion = FOnCompletion();
+	int taskRunningCount = 0;
+	onCompletion.BindLambda([&loadingBar, &taskRunningCount](bool bWasSuccessful) {
 		loadingBar.EnterProgressFrame();
-
-		ULandscapeComponent* landscapeComponent = terrain->LandscapeComponents[compIdx];
-
-		//init height data
-		TArray<FColor> hmapdata = TArray<FColor>();
-		hmapdata.Reserve(FMath::Square(ComponentSizeVerts));
-
-		//init weight data to 0
-		TArray<TArray<uint8>> weightData = TArray<TArray<uint8>>(); //stored as [layer][datapos]
-		weightData.Init(TArray<uint8>(), layerCount);
-		for (int i = 0; i < layerCount; ++i)
-		{
-			weightData[i].Init(0, FMath::Square(ComponentSizeVerts));
-		}
-
-		///BEGIN MAIN LOOP
-		for (int i = 0; i < ComponentSizeVerts; ++i)
-		{
-			for (int j = 0; j < ComponentSizeVerts; ++j)
-			{
-				float xPercCoords = (float)(((compIdx % landscapeComponentCountSqrt) * (ComponentSizeVerts - 1)) + j) / (float)(landscapeComponentCountSqrt * (ComponentSizeVerts - 1));
-				float yPercCoords = (float)(((compIdx / landscapeComponentCountSqrt) * (ComponentSizeVerts - 1)) + i) / (float)(landscapeComponentCountSqrt * (ComponentSizeVerts - 1));
-				float xFloatCoords = xPercCoords * sourceSizeX;
-				float yFloatCoords = yPercCoords * sourceSizeY;
-
-				LPatchPtr curPatch = *(symbolPatchMap.Find(LSystem::GetMapSymbolFrom01Coords(sourceLSymbolMap, xPercCoords, yPercCoords)));
-				allUsedPatches.AddUnique(curPatch);
-
-				//get 4 indices of source patches surrounding current vert
-				int xFloorCoords = FMath::FloorToInt(xFloatCoords - 0.5f);
-				int yFloorCoords = FMath::FloorToInt(yFloatCoords - 0.5f);
-				int xFloorCoordsp1 = FMath::Min(xFloorCoords + 1, sourceSizeX-1);
-				int yFloorCoordsp1 = FMath::Min(yFloorCoords + 1, sourceSizeY-1);
-				xFloorCoords = FMath::Max(xFloorCoords, 0);
-				yFloorCoords = FMath::Max(yFloorCoords, 0);
-
-				///HEIGHT MAP STEPS
-				//generate noise according to our 4 nearby patches
-				float noiseTotalx0y0 = 0.f, noiseTotalx1y0 = 0.f, noiseTotalx0y1 = 0.f, noiseTotalx1y1 = 0.f;
-				float noiseX = ((compIdx % landscapeComponentCountSqrt)*(ComponentSizeVerts - 1) + j)*0.1f;
-				float noiseY = ((compIdx / landscapeComponentCountSqrt)*(ComponentSizeVerts - 1) + i)*0.1f;
-				LPatchPtr patchx0y0 = (*symbolPatchMap.Find((*sourceLSymbolMap)[yFloorCoords][xFloorCoords]));
-				LPatchPtr patchx1y0 = (*symbolPatchMap.Find((*sourceLSymbolMap)[yFloorCoords][xFloorCoordsp1]));
-				LPatchPtr patchx0y1 = (*symbolPatchMap.Find((*sourceLSymbolMap)[yFloorCoordsp1][xFloorCoords]));
-				LPatchPtr patchx1y1 = (*symbolPatchMap.Find((*sourceLSymbolMap)[yFloorCoordsp1][xFloorCoordsp1]));
-
-				//patch x0y0 noise
-				noiseTotalx0y0 = SumNoiseMaps(patchx0y0->noiseMaps, noiseX, noiseY);
-				
-				//patch x1y0 noise
-				if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { noiseTotalx1y0 = noiseTotalx0y0; }
-				else { noiseTotalx1y0 = SumNoiseMaps(patchx1y0->noiseMaps, noiseX, noiseY); }
-
-				//patch x0y1 noise
-				if (yFloorCoordsp1 == yFloorCoords || patchx0y1 == patchx0y0) { noiseTotalx0y1 = noiseTotalx0y0; }
-				else { noiseTotalx0y1 = SumNoiseMaps(patchx0y1->noiseMaps, noiseX, noiseY); }
-
-				//patch x1y1 noise
-				if (xFloorCoordsp1 == xFloorCoords || patchx0y1 == patchx1y1) { noiseTotalx1y1 = noiseTotalx0y1; }
-				else if (yFloorCoordsp1 == yFloorCoords || patchx1y0 == patchx1y1) { noiseTotalx1y1 = noiseTotalx1y0; }
-				else { noiseTotalx1y1 = SumNoiseMaps(patchx1y1->noiseMaps, noiseX, noiseY); }
-
-				//bilerp fractional coordinates
-				float bilerpX = BilerpEase(FMath::Frac(xFloatCoords+0.5f));
-				float bilerpY = BilerpEase(FMath::Frac(yFloatCoords+0.5f));
-
-				//generate large scale height value
-				uint16 heightval = (int)FMath::BiLerp(
-					(float)smoothedHeightMap[yFloorCoords   * sourceSizeX + xFloorCoords  ],
-					(float)smoothedHeightMap[yFloorCoords   * sourceSizeX + xFloorCoordsp1],
-					(float)smoothedHeightMap[yFloorCoordsp1 * sourceSizeX + xFloorCoords  ],
-					(float)smoothedHeightMap[yFloorCoordsp1 * sourceSizeX + xFloorCoordsp1],
-					bilerpX,
-					bilerpY
-				);
-
-				//apply noise
-				heightval += (int)(metersToU16 * FMath::BiLerp(
-					noiseTotalx0y0,
-					noiseTotalx1y0,
-					noiseTotalx0y1,
-					noiseTotalx1y1,
-					bilerpX,
-					bilerpY
-				));
-
-				//data stored in RGBA 32 bit format, RG is 16 bit heightmap data
-				hmapdata.Add(FColor(heightval >> 8, heightval & 0xFF, 0));
-
-				///PAINT MAP STEPS
-				if (layerCount != 0)
-				{
-					TArray<float> weightsx0y0, weightsx1y0, weightsx0y1, weightsx1y1;
-					TArray<int> idxsTouched;
-
-					//patch x0y0 weights
-					GetWeightMapsAt(lSystem, patchx0y0->paintWeights, noiseX, noiseY, weightsx0y0, idxsTouched);
-
-					//patch x1y0 weights
-					if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { weightsx1y0 = weightsx0y0; }
-					else { GetWeightMapsAt(lSystem, patchx1y0->paintWeights, noiseX, noiseY, weightsx1y0, idxsTouched); }
-
-					//patch x0y1 weights
-					if (yFloorCoordsp1 == yFloorCoords || patchx0y1 == patchx0y0) { weightsx0y1 = weightsx0y0; }
-					else { GetWeightMapsAt(lSystem, patchx0y1->paintWeights, noiseX, noiseY, weightsx0y1, idxsTouched); }
-
-					//patch x1y1 weights
-					if (xFloorCoordsp1 == xFloorCoords || patchx0y1 == patchx1y1) { weightsx1y1 = weightsx0y1; }
-					else if (yFloorCoordsp1 == yFloorCoords || patchx1y0 == patchx1y1) { weightsx1y1 = weightsx1y0; }
-					else { GetWeightMapsAt(lSystem, patchx1y1->paintWeights, noiseX, noiseY, weightsx1y1, idxsTouched); }
-
-					for (int idx : idxsTouched)
-					{
-						weightData[idx][i*ComponentSizeVerts + j] = FMath::Clamp<uint8>(
-							FMath::BiLerp(
-								weightsx0y0[idx], weightsx1y0[idx],
-								weightsx0y1[idx], weightsx1y1[idx],
-								bilerpX,
-								bilerpY
-							) * 255,
-							0,
-							255);
-					}
-				}
-			}
-		}
-
-		//APPLY DATA
-		landscapeComponent->InitHeightmapData(hmapdata, true);
-
-		if (layerCount != 0)
-			landscapeComponent->InitWeightmapData(layerInfos, weightData);
+		--taskRunningCount;
+	});
+	
+	//goes positive X for each +1, then positive Y for a row
+	for (int compIdx = 0; compIdx < SP.landscapeComponentCount; ++compIdx)
+	{
+		++taskRunningCount;
+		(new FAutoDeleteAsyncTask<FLTerrainComponentMainTask>(compIdx, SP, onCompletion))->StartBackgroundTask();
 	}
 	///END MAIN LOOP
+
+	//wait for async tasks to finish
+	FPlatformProcess::ConditionalSleep([&taskRunningCount]()->bool {
+		return (taskRunningCount == 0);
+	});
 
 	///ASSIGN LANDSCAPE MATERIAL PARAMETERS
 	UMaterialInstanceConstant* landscapeMat = Cast<UMaterialInstanceConstant>(terrain->LandscapeMaterial);
@@ -292,6 +182,8 @@ ULandscapeLayerInfoObject* LTerrainGeneration::CreateLayerInfoAsset(LPaintWeight
 float LTerrainGeneration::SumNoiseMaps(TArray<LNoisePtr>& noiseMaps, float x, float y)
 {
 	float sum = 0.f;
+	if (noiseMaps.Num() == 0) return sum;
+
 	for (LNoisePtr noise : noiseMaps)
 	{
 		sum += noise->Noise(x, y);

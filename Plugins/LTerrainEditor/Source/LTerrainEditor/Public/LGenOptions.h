@@ -62,5 +62,7 @@ public:
 	void Construct(const FArguments& args);
 
 	void Reconstruct(LMeshAssetPtr item);
+
+	FReply CreateNewFoliageType(LMeshAssetPtr viewItem);
 };
 

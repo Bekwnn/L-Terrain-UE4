@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Editor.h"
 #include "LandscapeLayerInfoObject.h"
+#include "FoliageType.h"
 #include "Dialogs/DlgPickAssetPath.h"
 #include "AssetRegistryModule.h"
 
@@ -445,6 +446,36 @@ void SLMeshAssetView::Reconstruct(LMeshAssetPtr item)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("LayerInfoLabel", "Layer Info Object"))
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SObjectPropertyEntryBox) //TODO change to class with thumbnail preview
+				.AllowedClass(UFoliageType::StaticClass())
+				.OnObjectChanged_Lambda([item](FAssetData newFoliageType) {
+					item->foliageType = newFoliageType;
+				})
+				.ObjectPath_Lambda([item]()->FString {
+					return item->object.ObjectPath.ToString();
+				})
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.OnClicked_Raw(this, &SLMeshAssetView::CreateNewFoliageType, item)
+				.Text(LOCTEXT("NewFoliageAssetButton", "New"))
+			]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(2)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			[
 				SNew(SObjectPropertyEntryBox) //TODO change to class with thumbnail preview
@@ -458,6 +489,46 @@ void SLMeshAssetView::Reconstruct(LMeshAssetPtr item)
 			]
 		]
 	];
+}
+
+FReply SLMeshAssetView::CreateNewFoliageType(LMeshAssetPtr viewItem)
+{
+	FName foliageName = FName(*viewItem->name);
+	FName layerObjectName = FName(*FString::Printf(TEXT("%s_FoliageType"), *foliageName.ToString()));
+
+	FString path = TEXT("/Game/LTerrain_assets/");
+	FString packageName = path + layerObjectName.ToString();
+
+	TSharedRef<SDlgPickAssetPath> NewLayerDlg =
+		SNew(SDlgPickAssetPath)
+		.Title(LOCTEXT("CreateNewFoliageType", "Create New Foliage Type Object"))
+		.DefaultAssetPath(FText::FromString(packageName));
+
+	if (NewLayerDlg->ShowModal() != EAppReturnType::Cancel)
+	{
+		packageName = NewLayerDlg->GetFullAssetPath().ToString();
+		layerObjectName = FName(*NewLayerDlg->GetAssetName().ToString());
+
+		UPackage* package = CreatePackage(NULL, *packageName);
+		UFoliageType* newFoliage = NewObject<UFoliageType>(package, layerObjectName, RF_Public | RF_Standalone | RF_Transactional);
+		
+		//set new foliage object to use current static mesh, if picked
+		if (viewItem->object.IsValid())
+			newFoliage->SetStaticMesh(Cast<UStaticMesh>(viewItem->object.GetAsset()));
+
+		//notify asset registry
+		FAssetRegistryModule::AssetCreated(newFoliage);
+
+		//mark the package dirty
+		package->MarkPackageDirty();
+
+		//show in content browser
+		TArray<UObject*> objects;
+		objects.Add(newFoliage);
+		GEditor->SyncBrowserToObjects(objects);
+	}
+
+	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE
