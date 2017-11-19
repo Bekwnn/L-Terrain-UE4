@@ -7,6 +7,7 @@
 #include "FoliageType.h"
 #include "Dialogs/DlgPickAssetPath.h"
 #include "AssetRegistryModule.h"
+#include "FoliageType_InstancedStaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "FLTerrainEditorModule"
 
@@ -459,7 +460,7 @@ void SLMeshAssetView::Reconstruct(LMeshAssetPtr item)
 					item->foliageType = newFoliageType;
 				})
 				.ObjectPath_Lambda([item]()->FString {
-					return item->object.ObjectPath.ToString();
+					return item->foliageType.ObjectPath.ToString();
 				})
 			]
 			+ SHorizontalBox::Slot()
@@ -493,7 +494,7 @@ void SLMeshAssetView::Reconstruct(LMeshAssetPtr item)
 
 FReply SLMeshAssetView::CreateNewFoliageType(LMeshAssetPtr viewItem)
 {
-	FName foliageName = FName(*viewItem->name);
+	FName foliageName = FName(*(viewItem->name.Replace(TEXT(" "), TEXT(""))));
 	FName layerObjectName = FName(*FString::Printf(TEXT("%s_FoliageType"), *foliageName.ToString()));
 
 	FString path = TEXT("/Game/LTerrain_assets/");
@@ -510,8 +511,8 @@ FReply SLMeshAssetView::CreateNewFoliageType(LMeshAssetPtr viewItem)
 		layerObjectName = FName(*NewLayerDlg->GetAssetName().ToString());
 
 		UPackage* package = CreatePackage(NULL, *packageName);
-		UFoliageType* newFoliage = NewObject<UFoliageType>(package, layerObjectName, RF_Public | RF_Standalone | RF_Transactional);
-		
+		UFoliageType_InstancedStaticMesh* newFoliage = NewObject<UFoliageType_InstancedStaticMesh>(package, layerObjectName, RF_Public | RF_Standalone | RF_Transactional);
+
 		//set new foliage object to use current static mesh, if picked
 		if (viewItem->object.IsValid())
 			newFoliage->SetStaticMesh(Cast<UStaticMesh>(viewItem->object.GetAsset()));
@@ -526,6 +527,8 @@ FReply SLMeshAssetView::CreateNewFoliageType(LMeshAssetPtr viewItem)
 		TArray<UObject*> objects;
 		objects.Add(newFoliage);
 		GEditor->SyncBrowserToObjects(objects);
+
+		viewItem->foliageType = FAssetData(newFoliage);
 	}
 
 	return FReply::Handled();

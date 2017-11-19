@@ -9,12 +9,21 @@
 #include "LandscapeInfo.h"
 #include "LandscapeLayerInfoObject.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "InstancedFoliageActor.h"
+#include "FoliageType.h"
+#include "InstancedFoliage.h"
 
 #define LOCTEXT_NAMESPACE "FLTerrainEditorModule"
 
 void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 {
 	LSharedTaskParams SP;
+
+	//get the main foliage actor for all foliage instances
+	AInstancedFoliageActor* foliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(terrain->GetWorld(), true);
+
+	//TArray<FFoliageMeshInfo*> currentFoliages = TArray<FFoliageMeshInfo*>();
+	//TArray<UFoliageType*> foliageTypes = TArray<UFoliageType*>();
 
 	SP.terrain = terrain;
 	SP.lSystem = &lSystem;
@@ -149,7 +158,10 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 			landscapeComponent->InitWeightmapData(SP.layerInfos, SP.weightMaps[compIdx]);
 
 		//TODO: foliage
+		
 		FTransform testFoliageT = landscapeComponent->GetComponentToWorld();
+
+
 	}
 	///END ASSIGNING DATA
 
@@ -183,6 +195,22 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 		
 	}
 	///ASSIGN LANDSCAPE MATERIAL PARAMETERS END
+
+	///PLACE FOLIAGE AND SCATTER OBJECTS START
+	for (LMeshAssetPtr meshAsset : lSystem.meshAssets)
+	{
+		UFoliageType* foliageType = Cast<UFoliageType>(meshAsset->foliageType.GetAsset());
+		FFoliageMeshInfo* meshInfo = foliageActor->FindOrAddMesh(foliageType);
+
+		//TEST: place 1 of each foliage type on each landscape component
+		for (ULandscapeComponent* component : terrain->LandscapeComponents)
+		{
+			FFoliageInstance instance = FFoliageInstance();
+			instance.Location = component->GetComponentLocation();
+			meshInfo->AddInstance(foliageActor, foliageType, instance);
+		}
+	}
+	///PLACE FOLIAGE AND SCATTER OBJECTS END
 
 	///UPDATE TERRAIN START
 	for (ULandscapeComponent* landscapeComponent : terrain->LandscapeComponents)
