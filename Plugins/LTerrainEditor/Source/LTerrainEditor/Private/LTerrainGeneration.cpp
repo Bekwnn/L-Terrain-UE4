@@ -34,6 +34,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 
 	SP.heightMaps.Init(TArray<FColor>(), SP.landscapeComponentCount);
 	SP.weightMaps.Init(TArray<TArray<uint8>>(), SP.landscapeComponentCount);
+	SP.patchBlendData.Init(TArray<TArray<float>>(), SP.landscapeComponentCount);
 
 	terrain->Modify();
 
@@ -215,6 +216,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 	///UPDATE TERRAIN START
 	for (ULandscapeComponent* landscapeComponent : terrain->LandscapeComponents)
 	{
+		landscapeComponent->InvalidateLightingCache();
 		landscapeComponent->UpdateCollisionLayerData();
 		landscapeComponent->UpdateCachedBounds();
 		landscapeComponent->UpdateMaterialInstances();

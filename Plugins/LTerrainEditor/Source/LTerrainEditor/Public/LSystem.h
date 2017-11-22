@@ -91,18 +91,17 @@ public:
 class LPatch
 {
 public:
-	LPatch()
-	{
-		name = "default patch";
-		matchVal = LSymbolPtr();
-		minHeight = 0.f;
-		maxHeight = 0.f;
-		bHeightMatch = true;
-		heightSmoothFactor = 0.5f;
-		noiseMaps = TArray<LNoisePtr>();
-		paintWeights = TArray<LPaintWeightPtr>();
-		objectScatters = TArray<LObjectScatterPtr>();
-	}
+	LPatch() :
+		name("default patch"),
+		matchVal(LSymbolPtr()),
+		minHeight(0.f),
+		maxHeight(0.f),
+		bHeightMatch(true),
+		heightSmoothFactor(0.5f),
+		noiseMaps(TArray<LNoisePtr>()),
+		paintWeights(TArray<LPaintWeightPtr>()),
+		objectScatters(TArray<LObjectScatterPtr>())
+	{}
 
 	FString name;
 	LSymbolPtr matchVal;
@@ -128,9 +127,14 @@ public:
 class LObjectScatter
 {
 public:
+	LObjectScatter() :
+		frequency(100.f),
+		minRadius(0.f)
+	{}
+
 	LMeshAssetPtr meshAsset;
-	float frequency;
-	//TODO: distribution, noise etc
+	float frequency; //per 1kuu; values that are too high relative to minRadius will not result in more instances
+	float minRadius; //between placements
 };
 
 class LGroundTexture

@@ -23,6 +23,7 @@ public:
 	LSystem* lSystem;
 	TArray<ULandscapeLayerInfoObject*> layerInfos;
 	TArray<TArray<FColor>> heightMaps;
+	TArray<TArray<TArray<float>>> patchBlendData;
 	TArray<TArray<TArray<uint8>>> weightMaps;
 
 	//thread safe add unique

@@ -729,6 +729,56 @@ void SLScatterView::Reconstruct(LObjectScatterPtr item)
 				})
 			]
 		]
+		+ SVerticalBox::Slot()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("freq", "Frequency"))
+				]
+				+ SVerticalBox::Slot()
+				[
+
+					SNew(STextBlock)
+					.Text(LOCTEXT("minrad", "Min Radius"))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				[
+					SNew(SSpinBox<float>)
+					.MinDesiredWidth(80.f)
+					.MinValue(0.f)
+					.MaxValue(5000.f)
+					.Value_Lambda([item]()->float {
+						return item->frequency;
+					})
+					.OnValueChanged_Lambda([item](float val) {
+						item->frequency = val;
+					})
+				]
+				+ SVerticalBox::Slot()
+				[
+					SNew(SSpinBox<float>)
+					.MinDesiredWidth(80.f)
+					.MinValue(0.f)
+					.MaxValue(100.f)
+					.Value_Lambda([item]()->float {
+						return item->minRadius;
+					})
+					.OnValueChanged_Lambda([item](float val) {
+						item->minRadius = val;
+					})
+				]
+			]
+		]
 	];
 }
 

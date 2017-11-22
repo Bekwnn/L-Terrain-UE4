@@ -18,6 +18,14 @@ void FLTerrainComponentMainTask::DoWork()
 	TArray<FColor>& hmapdata = SP.heightMaps[compIdx];
 	hmapdata.Reserve(FMath::Square(SP.ComponentSizeVerts));
 
+	//init patch blend data to 0
+	TArray<TArray<float>>& patchBlendData = SP.patchBlendData[compIdx];
+	patchBlendData.Init(TArray<float>(), SP.lSystem->patches.Num());
+	for (int i = 0; i < SP.lSystem->patches.Num(); ++i)
+	{
+		patchBlendData[i].Init(0.f, FMath::Square(SP.ComponentSizeVerts));
+	}
+
 	//init weight data to 0
 	TArray<TArray<uint8>>& weightData = SP.weightMaps[compIdx]; //stored as [layer][datapos]
 	weightData.Init(TArray<uint8>(), SP.layerCount);
@@ -26,14 +34,12 @@ void FLTerrainComponentMainTask::DoWork()
 		weightData[i].Init(0, FMath::Square(SP.ComponentSizeVerts));
 	}
 
-	//create foliage instance objects
-
-
 	///BEGIN MAIN LOOP
 	for (int i = 0; i < SP.ComponentSizeVerts; ++i)
 	{
 		for (int j = 0; j < SP.ComponentSizeVerts; ++j)
 		{
+			///BUNCH OF GENERAL VARIABLES
 			float xPercCoords = (float)(((compIdx % SP.landscapeComponentCountSqrt) * (SP.ComponentSizeVerts - 1)) + j) / (float)(SP.landscapeComponentCountSqrt * (SP.ComponentSizeVerts - 1));
 			float yPercCoords = (float)(((compIdx / SP.landscapeComponentCountSqrt) * (SP.ComponentSizeVerts - 1)) + i) / (float)(SP.landscapeComponentCountSqrt * (SP.ComponentSizeVerts - 1));
 			float xFloatCoords = xPercCoords * SP.sourceSizeX;
@@ -50,36 +56,42 @@ void FLTerrainComponentMainTask::DoWork()
 			xFloorCoords = FMath::Max(xFloorCoords, 0);
 			yFloorCoords = FMath::Max(yFloorCoords, 0);
 
-			///HEIGHT MAP STEPS
-			//generate noise according to our 4 nearby patches
-			float noiseTotalx0y0 = 0.f, noiseTotalx1y0 = 0.f, noiseTotalx0y1 = 0.f, noiseTotalx1y1 = 0.f;
-			float noiseX = ((compIdx % SP.landscapeComponentCountSqrt)*(SP.ComponentSizeVerts - 1) + j)*0.1f;
-			float noiseY = ((compIdx / SP.landscapeComponentCountSqrt)*(SP.ComponentSizeVerts - 1) + i)*0.1f;
+			float scaledX = ((compIdx % SP.landscapeComponentCountSqrt)*(SP.ComponentSizeVerts - 1) + j)*0.1f;
+			float scaledY = ((compIdx / SP.landscapeComponentCountSqrt)*(SP.ComponentSizeVerts - 1) + i)*0.1f;
+
+			//four neighboring patches to vertex
 			LPatchPtr patchx0y0 = (*SP.symbolPatchMap.Find((*SP.sourceLSymbolMap)[yFloorCoords][xFloorCoords]));
 			LPatchPtr patchx1y0 = (*SP.symbolPatchMap.Find((*SP.sourceLSymbolMap)[yFloorCoords][xFloorCoordsp1]));
 			LPatchPtr patchx0y1 = (*SP.symbolPatchMap.Find((*SP.sourceLSymbolMap)[yFloorCoordsp1][xFloorCoords]));
 			LPatchPtr patchx1y1 = (*SP.symbolPatchMap.Find((*SP.sourceLSymbolMap)[yFloorCoordsp1][xFloorCoordsp1]));
 
-			//patch x0y0 noise
-			noiseTotalx0y0 = LTerrainGeneration::SumNoiseMaps(patchx0y0->noiseMaps, noiseX, noiseY);
-
-			//patch x1y0 noise
-			if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { noiseTotalx1y0 = noiseTotalx0y0; }
-			else { noiseTotalx1y0 = LTerrainGeneration::SumNoiseMaps(patchx1y0->noiseMaps, noiseX, noiseY); }
-
-			//patch x0y1 noise
-			if (yFloorCoordsp1 == yFloorCoords || patchx0y1 == patchx0y0) { noiseTotalx0y1 = noiseTotalx0y0; }
-			else { noiseTotalx0y1 = LTerrainGeneration::SumNoiseMaps(patchx0y1->noiseMaps, noiseX, noiseY); }
-
-			//patch x1y1 noise
-			if (xFloorCoordsp1 == xFloorCoords || patchx0y1 == patchx1y1) { noiseTotalx1y1 = noiseTotalx0y1; }
-			else if (yFloorCoordsp1 == yFloorCoords || patchx1y0 == patchx1y1) { noiseTotalx1y1 = noiseTotalx1y0; }
-			else { noiseTotalx1y1 = LTerrainGeneration::SumNoiseMaps(patchx1y1->noiseMaps, noiseX, noiseY); }
+			TArray<int> patchIdxsTouched = TArray<int>();
 
 			//bilerp fractional coordinates
 			float bilerpX = LTerrainGeneration::BilerpEase(FMath::Frac(xFloatCoords + 0.5f));
 			float bilerpY = LTerrainGeneration::BilerpEase(FMath::Frac(yFloatCoords + 0.5f));
+			///END OF GENERAL VARIABLES
 
+			///CREATE TILE BLEND WEIGHT MAP
+			int ix0y0 = 0, ix1y0 = 0, ix0y1 = 0, ix1y1 = 0;
+			SP.lSystem->patches.Find(patchx0y0, ix0y0);
+			patchBlendData[ix0y0][i*SP.ComponentSizeVerts + j] += (1 - bilerpX)*(1 - bilerpY);
+			patchIdxsTouched.AddUnique(ix0y0);
+
+			SP.lSystem->patches.Find(patchx1y0, ix1y0);
+			patchBlendData[ix1y0][i*SP.ComponentSizeVerts + j] += (bilerpX)*(1 - bilerpY);
+			patchIdxsTouched.AddUnique(ix1y0);
+
+			SP.lSystem->patches.Find(patchx0y1, ix0y1);
+			patchBlendData[ix0y1][i*SP.ComponentSizeVerts + j] += (1 - bilerpX)*(bilerpY);
+			patchIdxsTouched.AddUnique(ix0y1);
+
+			SP.lSystem->patches.Find(patchx1y1, ix1y1);
+			patchBlendData[ix1y1][i*SP.ComponentSizeVerts + j] += (bilerpX)*(bilerpY);
+			patchIdxsTouched.AddUnique(ix1y1);
+			///END TILE BLEND WEIGHT MAP
+
+			///HEIGHT MAP DATA
 			//generate large scale height value
 			uint16 heightval = (int)FMath::BiLerp(
 				(float)SP.smoothedHeightMap[yFloorCoords   * SP.sourceSizeX + xFloorCoords],
@@ -90,57 +102,46 @@ void FLTerrainComponentMainTask::DoWork()
 				bilerpY
 			);
 
-			//apply noise
-			heightval += (int)(SP.metersToU16 * FMath::BiLerp(
-				noiseTotalx0y0,
-				noiseTotalx1y0,
-				noiseTotalx0y1,
-				noiseTotalx1y1,
-				bilerpX,
-				bilerpY
-			));
+			//noise amount
+			float noiseTotal = 0.f;
+			for (int patchIdx : patchIdxsTouched)
+			{
+				noiseTotal +=
+					patchBlendData[patchIdx][i*SP.ComponentSizeVerts + j] *
+					LTerrainGeneration::SumNoiseMaps(SP.lSystem->patches[patchIdx]->noiseMaps, scaledX, scaledY);
+			}
+			heightval += (int)(SP.metersToU16 * noiseTotal);
 
 			//data stored in RGBA 32 bit format, RG is 16 bit heightmap data
 			hmapdata.Add(FColor(heightval >> 8, heightval & 0xFF, 0));
+			///END HEIGHT MAP DATA
 
-			///PAINT MAP STEPS
+			///TEXTURE WEIGHT MAP DATA
 			if (SP.layerCount != 0)
 			{
-				TArray<float> weightsx0y0, weightsx1y0, weightsx0y1, weightsx1y1;
-				TArray<int> idxsTouched;
+				TArray<int> textureIdxsTouched;
+				TArray<float> summedWeights = TArray<float>();
+				summedWeights.Init(0.f, SP.lSystem->groundTextures.Num());
 
-				//patch x0y0 weights
-				LTerrainGeneration::GetWeightMapsAt(*SP.lSystem, patchx0y0->paintWeights, noiseX, noiseY, weightsx0y0, idxsTouched);
-
-				//patch x1y0 weights
-				if (xFloorCoordsp1 == xFloorCoords || patchx1y0 == patchx0y0) { weightsx1y0 = weightsx0y0; }
-				else { LTerrainGeneration::GetWeightMapsAt(*SP.lSystem, patchx1y0->paintWeights, noiseX, noiseY, weightsx1y0, idxsTouched); }
-
-				//patch x0y1 weights
-				if (yFloorCoordsp1 == yFloorCoords || patchx0y1 == patchx0y0) { weightsx0y1 = weightsx0y0; }
-				else { LTerrainGeneration::GetWeightMapsAt(*SP.lSystem, patchx0y1->paintWeights, noiseX, noiseY, weightsx0y1, idxsTouched); }
-
-				//patch x1y1 weights
-				if (xFloorCoordsp1 == xFloorCoords || patchx0y1 == patchx1y1) { weightsx1y1 = weightsx0y1; }
-				else if (yFloorCoordsp1 == yFloorCoords || patchx1y0 == patchx1y1) { weightsx1y1 = weightsx1y0; }
-				else { LTerrainGeneration::GetWeightMapsAt(*SP.lSystem, patchx1y1->paintWeights, noiseX, noiseY, weightsx1y1, idxsTouched); }
-
-				for (int idx : idxsTouched)
+				for (int patchIdx : patchIdxsTouched)
 				{
-					weightData[idx][i*SP.ComponentSizeVerts + j] = FMath::Clamp<uint8>(
-						FMath::BiLerp(
-							weightsx0y0[idx], weightsx1y0[idx],
-							weightsx0y1[idx], weightsx1y1[idx],
-							bilerpX,
-							bilerpY
-						) * 255,
-						0,
-						255);
+					TArray<float> weights;
+					LTerrainGeneration::GetWeightMapsAt(*SP.lSystem, SP.lSystem->patches[patchIdx]->paintWeights, scaledX, scaledY, weights, textureIdxsTouched);
+					for (int texIdx : textureIdxsTouched)
+					{
+						summedWeights[texIdx] += weights[texIdx] * patchBlendData[patchIdx][i*SP.ComponentSizeVerts + j];
+					}
+				}
+
+				for (int texIdx : textureIdxsTouched)
+				{
+					weightData[texIdx][i*SP.ComponentSizeVerts + j] =
+						FMath::Clamp<uint8>(summedWeights[texIdx] * 255, 0, 255);
 				}
 			}
+			///END TEXTURE WEIGHT MAP DATA
 		}
 	}
-
 	onCompletion.ExecuteIfBound(true); //succeeded in process
 }
 
