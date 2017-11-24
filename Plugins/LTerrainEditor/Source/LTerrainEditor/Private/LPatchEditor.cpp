@@ -768,7 +768,7 @@ void SLScatterView::Reconstruct(LObjectScatterPtr item)
 				[
 					SNew(SSpinBox<float>)
 					.MinDesiredWidth(80.f)
-					.MinValue(0.f)
+					.MinValue(0.25f)
 					.MaxValue(100.f)
 					.Value_Lambda([item]()->float {
 						return item->minRadius;

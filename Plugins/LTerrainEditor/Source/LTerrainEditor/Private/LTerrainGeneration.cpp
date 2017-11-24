@@ -15,6 +15,15 @@
 
 #define LOCTEXT_NAMESPACE "FLTerrainEditorModule"
 
+struct Coords
+{
+public:
+	Coords() : x(-1), y(-1) {}
+	Coords(int x, int y) : x(x), y(y) {}
+	int x;
+	int y;
+};
+
 void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 {
 	LSharedTaskParams SP;
@@ -158,10 +167,6 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 		if (SP.layerCount != 0)
 			landscapeComponent->InitWeightmapData(SP.layerInfos, SP.weightMaps[compIdx]);
 
-		//TODO: foliage
-		
-		FTransform testFoliageT = landscapeComponent->GetComponentToWorld();
-
 
 	}
 	///END ASSIGNING DATA
@@ -198,17 +203,128 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 	///ASSIGN LANDSCAPE MATERIAL PARAMETERS END
 
 	///PLACE FOLIAGE AND SCATTER OBJECTS START
-	for (LMeshAssetPtr meshAsset : lSystem.meshAssets)
+	FRandomStream stream = FRandomStream();
+	for (LPatchPtr patch : SP.allUsedPatches)
 	{
-		UFoliageType* foliageType = Cast<UFoliageType>(meshAsset->foliageType.GetAsset());
-		FFoliageMeshInfo* meshInfo = foliageActor->FindOrAddMesh(foliageType);
-
-		//TEST: place 1 of each foliage type on each landscape component
-		for (ULandscapeComponent* component : terrain->LandscapeComponents)
+		for (LObjectScatterPtr objectScatter : patch->objectScatters)
 		{
-			FFoliageInstance instance = FFoliageInstance();
-			instance.Location = component->GetComponentLocation();
-			meshInfo->AddInstance(foliageActor, foliageType, instance);
+			UFoliageType* foliageType = Cast<UFoliageType>(objectScatter->meshAsset->foliageType.GetAsset());
+			FFoliageMeshInfo* meshInfo = foliageActor->FindOrAddMesh(foliageType);
+
+			///START Implementation of Fast Poisson Disk Sampling in Arbitrary Dimensions - R. Bridson (2007)
+			//pick our initial point near the middle
+			TArray<FVector2D> acceptedPointLocations = TArray<FVector2D>();
+
+			//for visual debugging
+			//TArray<FVector2D> candidatePointLocations = TArray<FVector2D>();
+
+			//initialize our cell grid
+			int uniqueVertCountWidth = SP.landscapeComponentCountSqrt*(SP.ComponentSizeVerts - 1); //width in verts, not counting overlaps at seams
+			float realWidthcm = terrain->GetActorScale().X*uniqueVertCountWidth;
+			if (objectScatter->minRadius < 0.25f) objectScatter->minRadius = 0.25f;
+			float minRadiuscm = objectScatter->minRadius*100.f;
+			float cellSize = minRadiuscm / 1.41421f; //sqrt(n) for n-dimensional
+			float cellSizeInv = 1.f / cellSize;
+			int gridCount = (realWidthcm / cellSize) + 1; //totalTerrainSize(cm)/cellSize(cm), plus 1 padding
+			TArray<TArray<int>> grid = TArray<TArray<int>>(); //2D array of size gridCount x gridCount
+			grid.Init(TArray<int>(), gridCount);
+			for (int i = 0; i < gridCount; ++i)
+			{
+				grid[i].Init(-1, gridCount);
+			}
+
+			//create and insert the initial point
+			//active list points to grid list, grid list points to accepted list
+			TArray<Coords> activePoints = TArray<Coords>();
+			acceptedPointLocations.Add(FVector2D(
+				stream.FRandRange(realWidthcm*0.25f, realWidthcm*0.75f),
+				stream.FRandRange(realWidthcm*0.25f, realWidthcm*0.75f)));
+			Coords i0gridIdx = Coords((int)(acceptedPointLocations[0].X*cellSizeInv), (int)(acceptedPointLocations[0].Y*cellSizeInv));
+			grid[i0gridIdx.x][i0gridIdx.y] = 0; //point to initial point
+			activePoints.Add(i0gridIdx);
+
+			while (activePoints.Num() > 0)
+			{
+				//pick random active point
+				int randActivePointIdx = stream.RandRange(0, activePoints.Num() - 1);
+				FVector2D activePoint = acceptedPointLocations[grid
+					[activePoints[randActivePointIdx].x][activePoints[randActivePointIdx].y]];
+				FVector2D candidate;
+				float radDist;
+				bool candidateFound = false;
+				Coords canGridIdx;
+				for (int candidateCount = 0; candidateCount < 50; ++candidateCount)
+				{
+					radDist = stream.FRandRange(minRadiuscm, minRadiuscm*2.f);
+					candidate = activePoint + FVector2D(radDist, 0.f).GetRotated(stream.FRandRange(0.f, 359.99f));
+					
+					// if we're out of bounds, throw candidate out
+					if (candidate.X < 0.f || candidate.X >= realWidthcm || candidate.Y < 0.f || candidate.Y >= realWidthcm)
+						continue;
+					
+					canGridIdx = Coords((int)(candidate.X*cellSizeInv), (int)(candidate.Y*cellSizeInv));
+
+					if (grid[canGridIdx.x][canGridIdx.y] >= 0)
+					{
+						continue; //if this grid spot is occupied, it's too close, throw candidate out
+					}
+					
+					//check neighbor of 8 cells
+					candidateFound = true; //mark true until failure found
+					for (int i = -2; i <= 2; ++i)
+					{
+						for (int j = -2; j <= 2; ++j)
+						{
+							if (i == j && i == 0)
+								continue;
+							if (canGridIdx.x + i < 0 || canGridIdx.x + i >= gridCount ||
+								canGridIdx.y + j < 0 || canGridIdx.y + j >= gridCount)
+								continue;
+
+							if (grid[canGridIdx.x + i][canGridIdx.y + j] >= 0) //if neighbor point found
+							{
+								float neighborDist = FVector2D::Distance(candidate, acceptedPointLocations[grid[canGridIdx.x + i][canGridIdx.y + j]]);
+								if (neighborDist < minRadiuscm)
+								{
+									candidateFound = false;
+									goto exitloop;
+								}
+							}
+						}
+					}
+					if (candidateFound) break;
+					exitloop:;
+				}
+
+				//valid point, add to accepted list and active point list
+				if (candidateFound)
+				{
+					int addedIdx = acceptedPointLocations.Add(candidate);
+					grid[canGridIdx.x][canGridIdx.y] = addedIdx;
+					activePoints.Add(canGridIdx);
+				}
+				else //failed to find new acceptable point, remove from active list
+				{
+					activePoints.RemoveAt(randActivePointIdx);
+				}
+			}
+			///END Implementation of Fast Poisson Disk Sampling in Arbitrary Dimensions - R. Bridson (2007)
+
+			//spawn foliage instances from accepted locations
+			for (const FVector2D& location : acceptedPointLocations)
+			{
+				FFoliageInstance instance = FFoliageInstance();
+				instance.Location = SP.terrain->GetActorLocation() + FVector(location, 0.f);
+				meshInfo->AddInstance(foliageActor, foliageType, instance);
+			}
+			//for visual debugging
+			/*for (const FVector2D& location : candidatePointLocations)
+			{
+				FFoliageInstance instance = FFoliageInstance();
+				instance.Location = SP.terrain->GetActorLocation() + FVector(location, -500.f);
+				instance.DrawScale3D = FVector(0.25f, 0.25f, 0.25f);
+				meshInfo->AddInstance(foliageActor, foliageType, instance);
+			}*/
 		}
 	}
 	///PLACE FOLIAGE AND SCATTER OBJECTS END
@@ -225,11 +341,6 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 	///UPDATE TERRAIN END
 }
 #undef LOCTEXT_NAMESPACE
-
-ULandscapeLayerInfoObject* LTerrainGeneration::CreateLayerInfoAsset(LPaintWeight & layerInfo)
-{
-	return nullptr;
-}
 
 float LTerrainGeneration::SumNoiseMaps(TArray<LNoisePtr>& noiseMaps, float x, float y)
 {

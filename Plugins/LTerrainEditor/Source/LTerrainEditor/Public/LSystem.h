@@ -129,7 +129,7 @@ class LObjectScatter
 public:
 	LObjectScatter() :
 		frequency(100.f),
-		minRadius(0.f)
+		minRadius(0.25f)
 	{}
 
 	LMeshAssetPtr meshAsset;
