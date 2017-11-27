@@ -128,12 +128,12 @@ class LObjectScatter
 {
 public:
 	LObjectScatter() :
-		frequency(100.f),
-		minRadius(0.25f)
+		maxRadius(2.f),
+		minRadius(1.f)
 	{}
 
 	LMeshAssetPtr meshAsset;
-	float frequency; //per 1kuu; values that are too high relative to minRadius will not result in more instances
+	float maxRadius; //per 1kuu; values that are too high relative to minRadius will not result in more instances
 	float minRadius; //between placements
 };
 

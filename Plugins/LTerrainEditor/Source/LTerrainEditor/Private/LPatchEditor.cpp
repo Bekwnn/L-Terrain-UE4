@@ -739,29 +739,29 @@ void SLScatterView::Reconstruct(LObjectScatterPtr item)
 				+ SVerticalBox::Slot()
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("freq", "Frequency"))
+					.Text(LOCTEXT("maxrad", "Max Distance"))
 				]
 				+ SVerticalBox::Slot()
 				[
-
 					SNew(STextBlock)
-					.Text(LOCTEXT("minrad", "Min Radius"))
+					.Text(LOCTEXT("minrad", "Min Distance"))
 				]
 			]
 			+ SHorizontalBox::Slot()
+			.AutoWidth()
 			[
 				SNew(SVerticalBox)
 				+ SVerticalBox::Slot()
 				[
 					SNew(SSpinBox<float>)
 					.MinDesiredWidth(80.f)
-					.MinValue(0.f)
-					.MaxValue(5000.f)
+					.MinValue(0.25f)
+					.MaxValue(500.f)
 					.Value_Lambda([item]()->float {
-						return item->frequency;
+						return item->maxRadius;
 					})
 					.OnValueChanged_Lambda([item](float val) {
-						item->frequency = val;
+						item->maxRadius = (val > item->minRadius)? val : item->minRadius;
 					})
 				]
 				+ SVerticalBox::Slot()
@@ -769,12 +769,12 @@ void SLScatterView::Reconstruct(LObjectScatterPtr item)
 					SNew(SSpinBox<float>)
 					.MinDesiredWidth(80.f)
 					.MinValue(0.25f)
-					.MaxValue(100.f)
+					.MaxValue(500.f)
 					.Value_Lambda([item]()->float {
 						return item->minRadius;
 					})
 					.OnValueChanged_Lambda([item](float val) {
-						item->minRadius = val;
+						item->minRadius = (val < item->maxRadius)? val : item->maxRadius;
 					})
 				]
 			]

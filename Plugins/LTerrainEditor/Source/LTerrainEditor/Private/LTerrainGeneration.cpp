@@ -223,6 +223,7 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 			float realWidthcm = terrain->GetActorScale().X*uniqueVertCountWidth;
 			if (objectScatter->minRadius < 0.25f) objectScatter->minRadius = 0.25f;
 			float minRadiuscm = objectScatter->minRadius*100.f;
+			float maxRadiuscm = objectScatter->maxRadius*100.f;
 			float cellSize = minRadiuscm / 1.41421f; //sqrt(n) for n-dimensional
 			float cellSizeInv = 1.f / cellSize;
 			int gridCount = (realWidthcm / cellSize) + 1; //totalTerrainSize(cm)/cellSize(cm), plus 1 padding
@@ -310,11 +311,37 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 			}
 			///END Implementation of Fast Poisson Disk Sampling in Arbitrary Dimensions - R. Bridson (2007)
 
+			//trim accepted points based on blend map and obtain Z coordinate
+			TArray<FVector> acceptedLocations3D = TArray<FVector>();
+			float U16ToMeters = 1.f / SP.metersToU16;
+			for (int i = 0; i < acceptedPointLocations.Num(); ++i)
+			{
+				const FVector2D& point = acceptedPointLocations[i];
+				int patchIdx = lSystem.patches.Find(patch);
+				//blend data coords as XX.YY, where XX is the landscape component, YY is cordinates within component
+				float coordX = (point.X / (realWidthcm / SP.landscapeComponentCountSqrt));
+				float coordY = (point.Y / (realWidthcm / SP.landscapeComponentCountSqrt));
+				int compIdx = FMath::FloorToInt(coordY) * SP.landscapeComponentCountSqrt + FMath::FloorToInt(coordX); //landscape component
+				int subIdx = FMath::FloorToInt(FMath::Frac(coordY) * SP.ComponentSizeVerts) * SP.ComponentSizeVerts + FMath::FloorToInt(FMath::Frac(coordX) * SP.ComponentSizeVerts);//idx inside landscape component
+				bool removeInstance = false;
+				float blendVal = SP.patchBlendData[compIdx][patchIdx][subIdx];
+
+				//use RNG to toss out some % of instances based on blendVal linearly from 1.0 to 0.5
+				if (blendVal < 0.5f) continue;
+				else if (blendVal < 0.95f && (stream.GetFraction()/2.f) + 0.5f > blendVal) continue;
+				else
+				{
+					int sIntHeight = ((int)SP.heightMaps[compIdx][subIdx].R << 8) | ((int)SP.heightMaps[compIdx][subIdx].G);
+					float terrainZ = (float)(sIntHeight - SP.zeroHeight) * U16ToMeters * 100.f; //to cm
+					acceptedLocations3D.Add(FVector(point, terrainZ));
+				}
+			}
+
 			//spawn foliage instances from accepted locations
-			for (const FVector2D& location : acceptedPointLocations)
+			for (const FVector& location : acceptedLocations3D)
 			{
 				FFoliageInstance instance = FFoliageInstance();
-				instance.Location = SP.terrain->GetActorLocation() + FVector(location, 0.f);
+				instance.Location = SP.terrain->GetActorLocation() + location;
 				meshInfo->AddInstance(foliageActor, foliageType, instance);
 			}
 			//for visual debugging
