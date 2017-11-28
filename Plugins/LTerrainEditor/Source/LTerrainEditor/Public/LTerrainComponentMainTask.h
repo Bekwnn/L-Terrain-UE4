@@ -11,7 +11,11 @@ class FLTerrainComponentMainTask : public FNonAbandonableTask
 	friend class FAutoDeleteAsyncTask<FLTerrainComponentMainTask>;
 
 public:
-	FLTerrainComponentMainTask(int32 compIdx, LSharedTaskParams& SP, FOnCompletion onCompletion);
+	FLTerrainComponentMainTask(int32 compIdx, LSharedTaskParams& SP, FOnCompletion onCompletion) :
+		compIdx(compIdx),
+		SP(SP),
+		onCompletion(onCompletion)
+	{}
 
 protected:
 	void DoWork();

@@ -3,13 +3,6 @@
 
 #include "LandscapeComponent.h"
 
-FLTerrainComponentMainTask::FLTerrainComponentMainTask(int32 compIdx, LSharedTaskParams& SP, FOnCompletion onCompletion) :
-	compIdx(compIdx),
-	SP(SP),
-	onCompletion(onCompletion)
-{
-}
-
 void FLTerrainComponentMainTask::DoWork()
 {
 	ULandscapeComponent* landscapeComponent = SP.terrain->LandscapeComponents[compIdx];
