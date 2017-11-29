@@ -117,22 +117,22 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 	loadingBarMain.EnterProgressFrame();
 
 	FOnCompletion onCompletion = FOnCompletion();
-	int taskRunningCount = 0;
+	FThreadSafeCounter taskRunningCount(0);
 	onCompletion.BindLambda([&taskRunningCount](bool bWasSuccessful) {
-		--taskRunningCount;
+		taskRunningCount.Decrement();
 	});
 	
 	//goes positive X for each +1, then positive Y for a row
 	for (int compIdx = 0; compIdx < SP.landscapeComponentCount; ++compIdx)
 	{
-		++taskRunningCount;
+		taskRunningCount.Increment();
 		(new FAutoDeleteAsyncTask<FLTerrainComponentMainTask>(compIdx, SP, onCompletion))->StartBackgroundTask();
 	}
 
 	//update loading bar while waiting for async tasks to finish
-	for (int barCount = taskRunningCount; taskRunningCount > 0 && barCount > 0; )
+	for (int barCount = taskRunningCount.GetValue(); taskRunningCount.GetValue() > 0 && barCount > 0; )
 	{
-		while (barCount > taskRunningCount)
+		while (barCount > taskRunningCount.GetValue())
 		{
 			loadingBarMain.EnterProgressFrame();
 			--barCount;
@@ -200,9 +200,9 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 	loadingBarFoliage.EnterProgressFrame();
 
 	FOnFoliageCompletion onFolaigeCompletion = FOnFoliageCompletion();
-	taskRunningCount = 0;
+	taskRunningCount.Set(0);
 	onFolaigeCompletion.BindLambda([&taskRunningCount](bool bWasSuccessful) {
-		--taskRunningCount;
+		taskRunningCount.Decrement();
 	});
 
 	//goes positive X for each +1, then positive Y for a row
@@ -217,17 +217,17 @@ void LTerrainGeneration::GenerateTerrain(LSystem& lSystem, ALandscape* terrain)
 			FPs[idx].meshInfo = foliageActor->FindOrAddMesh(FPs[idx].foliageType);
 			FPs[idx].patch = patch;
 			FPs[idx].objectScatter = objectScatter;
-			FPs[idx].RNGSeed = taskRunningCount;
+			FPs[idx].RNGSeed = taskRunningCount.GetValue();
 
-			++taskRunningCount;
+			taskRunningCount.Increment();
 			(new FAutoDeleteAsyncTask<FLFoliageTask>(FPs[idx], SP, onFolaigeCompletion))->StartBackgroundTask();
 		}
 	}
 
 	//update loading bar while waiting for async tasks to finish
-	for (int barCount = taskRunningCount; taskRunningCount > 0 && barCount > 0; )
+	for (int barCount = taskRunningCount.GetValue(); taskRunningCount.GetValue() > 0 && barCount > 0; )
 	{
-		while (barCount > taskRunningCount)
+		while (barCount > taskRunningCount.GetValue())
 		{
 			loadingBarFoliage.EnterProgressFrame();
 			--barCount;
